@@ -1,0 +1,6 @@
+testMode: property
+testLimit: 5000
+seqLen: 50
+filterFunctions:
+  - "CounterEchidna.increment()"
+filterBlacklist: false

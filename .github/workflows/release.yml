@@ -1,0 +1,35 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+  id-token: write
+  attestations: write
+
+jobs:
+  release:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Verify source and metadata
+        run: make test
+      - name: Build deterministic source archive
+        run: |
+          mkdir -p dist
+          git archive --format=tar --prefix="limechain-omarchy-web3-${GITHUB_REF_NAME#v}/" HEAD \
+            | gzip -n -9 >"dist/limechain-omarchy-web3-${GITHUB_REF_NAME#v}.tar.gz"
+          cp sbom/limechain-web3.spdx.json dist/
+          (cd dist && sha256sum * >SHA256SUMS)
+      - name: Attest release artifacts
+        uses: actions/attest-build-provenance@977bb373ede98d70efdf65b84cb5f73e068dcc2a # v3
+        with:
+          subject-path: "dist/*"
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" dist/* --verify-tag --generate-notes

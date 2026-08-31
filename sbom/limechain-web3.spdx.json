@@ -1,0 +1,1242 @@
+{
+  "SPDXID": "SPDXRef-DOCUMENT",
+  "creationInfo": {
+    "created": "2026-08-31T00:00:00Z",
+    "creators": [
+      "Organization: LimeChain",
+      "Tool: scripts/generate-sbom.py"
+    ]
+  },
+  "dataLicense": "CC0-1.0",
+  "documentNamespace": "https://limechain.tech/spdx/2afacdac-f033-53d2-a400-ad4e61c66a43",
+  "name": "limechain-omarchy-web3-0.1.0-dev",
+  "packages": [
+    {
+      "SPDXID": "SPDXRef-Package-aiohappyeyeballs",
+      "copyrightText": "NOASSERTION",
+      "downloadLocation": "NOASSERTION",
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceLocator": "pkg:pypi/aiohappyeyeballs@2.7.1",
+          "referenceType": "purl"
+        }
+      ],
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "NOASSERTION",
+      "name": "aiohappyeyeballs",
+      "versionInfo": "2.7.1"
+    },
+    {
+      "SPDXID": "SPDXRef-Package-aiohttp",
+      "copyrightText": "NOASSERTION",
+      "downloadLocation": "NOASSERTION",
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceLocator": "pkg:pypi/aiohttp@3.14.3",
+          "referenceType": "purl"
+        }
+      ],
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "NOASSERTION",
+      "name": "aiohttp",
+      "versionInfo": "3.14.3"
+    },
+    {
+      "SPDXID": "SPDXRef-Package-aiosignal",
+      "copyrightText": "NOASSERTION",
+      "downloadLocation": "NOASSERTION",
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceLocator": "pkg:pypi/aiosignal@1.4.0",
+          "referenceType": "purl"
+        }
+      ],
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "NOASSERTION",
+      "name": "aiosignal",
+      "versionInfo": "1.4.0"
+    },
+    {
+      "SPDXID": "SPDXRef-Package-annotated-types",
+      "copyrightText": "NOASSERTION",
+      "downloadLocation": "NOASSERTION",
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceLocator": "pkg:pypi/annotated-types@0.8.0",
+          "referenceType": "purl"
+        }
+      ],
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "NOASSERTION",
+      "name": "annotated-types",
+      "versionInfo": "0.8.0"
+    },
+    {
+      "SPDXID": "SPDXRef-Package-attrs",
+      "copyrightText": "NOASSERTION",
+      "downloadLocation": "NOASSERTION",
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceLocator": "pkg:pypi/attrs@26.1.0",
+          "referenceType": "purl"
+        }
+      ],
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "NOASSERTION",
+      "name": "attrs",
+      "versionInfo": "26.1.0"
+    },
+    {
+      "SPDXID": "SPDXRef-Package-bitarray",
+      "copyrightText": "NOASSERTION",
+      "downloadLocation": "NOASSERTION",
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceLocator": "pkg:pypi/bitarray@3.10.1",
+          "referenceType": "purl"
+        }
+      ],
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "NOASSERTION",
+      "name": "bitarray",
+      "versionInfo": "3.10.1"
+    },
+    {
+      "SPDXID": "SPDXRef-Package-bun",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "2d03fb5fb83ac8b567aca0a281b2ce1a1a19d488f56c2968d88c3f25e92fe452"
+        }
+      ],
+      "copyrightText": "NOASSERTION",
+      "downloadLocation": "https://github.com/oven-sh/bun/releases/download/bun-v1.4.0/bun-linux-x64.zip",
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceLocator": "pkg:generic/bun@1.4.0?download_url=https://github.com/oven-sh/bun/releases/download/bun-v1.4.0/bun-linux-x64.zip",
+          "referenceType": "purl"
+        }
+      ],
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "NOASSERTION",
+      "name": "bun",
+      "versionInfo": "1.4.0"
+    },
+    {
+      "SPDXID": "SPDXRef-Package-cbor2",
+      "copyrightText": "NOASSERTION",
+      "downloadLocation": "NOASSERTION",
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceLocator": "pkg:pypi/cbor2@6.1.4",
+          "referenceType": "purl"
+        }
+      ],
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "NOASSERTION",
+      "name": "cbor2",
+      "versionInfo": "6.1.4"
+    },
+    {
+      "SPDXID": "SPDXRef-Package-certifi",
+      "copyrightText": "NOASSERTION",
+      "downloadLocation": "NOASSERTION",
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceLocator": "pkg:pypi/certifi@2026.7.22",
+          "referenceType": "purl"
+        }
+      ],
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "NOASSERTION",
+      "name": "certifi",
+      "versionInfo": "2026.7.22"
+    },
+    {
+      "SPDXID": "SPDXRef-Package-charset-normalizer",
+      "copyrightText": "NOASSERTION",
+      "downloadLocation": "NOASSERTION",
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceLocator": "pkg:pypi/charset-normalizer@3.5.1",
+          "referenceType": "purl"
+        }
+      ],
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "NOASSERTION",
+      "name": "charset-normalizer",
+      "versionInfo": "3.5.1"
+    },
+    {
+      "SPDXID": "SPDXRef-Package-ckzg",
+      "copyrightText": "NOASSERTION",
+      "downloadLocation": "NOASSERTION",
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceLocator": "pkg:pypi/ckzg@2.1.8",
+          "referenceType": "purl"
+        }
+      ],
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "NOASSERTION",
+      "name": "ckzg",
+      "versionInfo": "2.1.8"
+    },
+    {
+      "SPDXID": "SPDXRef-Package-crytic-compile",
+      "copyrightText": "NOASSERTION",
+      "downloadLocation": "NOASSERTION",
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceLocator": "pkg:pypi/crytic-compile@0.4.2",
+          "referenceType": "purl"
+        }
+      ],
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "NOASSERTION",
+      "name": "crytic-compile",
+      "versionInfo": "0.4.2"
+    },
+    {
+      "SPDXID": "SPDXRef-Package-cytoolz",
+      "copyrightText": "NOASSERTION",
+      "downloadLocation": "NOASSERTION",
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceLocator": "pkg:pypi/cytoolz@1.1.0",
+          "referenceType": "purl"
+        }
+      ],
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "NOASSERTION",
+      "name": "cytoolz",
+      "versionInfo": "1.1.0"
+    },
+    {
+      "SPDXID": "SPDXRef-Package-echidna",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "436d26cb5af34c6c525812b857ac53f218c7f6ad07d69495ef88bc4cdc85c764"
+        }
+      ],
+      "copyrightText": "NOASSERTION",
+      "downloadLocation": "https://github.com/crytic/echidna/releases/download/v2.3.3/echidna-2.3.3-x86_64-linux.tar.gz",
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceLocator": "pkg:generic/echidna@2.3.3?download_url=https://github.com/crytic/echidna/releases/download/v2.3.3/echidna-2.3.3-x86_64-linux.tar.gz",
+          "referenceType": "purl"
+        }
+      ],
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "NOASSERTION",
+      "name": "echidna",
+      "versionInfo": "2.3.3"
+    },
+    {
+      "SPDXID": "SPDXRef-Package-eth-abi",
+      "copyrightText": "NOASSERTION",
+      "downloadLocation": "NOASSERTION",
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceLocator": "pkg:pypi/eth-abi@6.0.0",
+          "referenceType": "purl"
+        }
+      ],
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "NOASSERTION",
+      "name": "eth-abi",
+      "versionInfo": "6.0.0"
+    },
+    {
+      "SPDXID": "SPDXRef-Package-eth-account",
+      "copyrightText": "NOASSERTION",
+      "downloadLocation": "NOASSERTION",
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceLocator": "pkg:pypi/eth-account@0.14.0",
+          "referenceType": "purl"
+        }
+      ],
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "NOASSERTION",
+      "name": "eth-account",
+      "versionInfo": "0.14.0"
+    },
+    {
+      "SPDXID": "SPDXRef-Package-eth-hash",
+      "copyrightText": "NOASSERTION",
+      "downloadLocation": "NOASSERTION",
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceLocator": "pkg:pypi/eth-hash@0.8.0",
+          "referenceType": "purl"
+        }
+      ],
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "NOASSERTION",
+      "name": "eth-hash",
+      "versionInfo": "0.8.0"
+    },
+    {
+      "SPDXID": "SPDXRef-Package-eth-keyfile",
+      "copyrightText": "NOASSERTION",
+      "downloadLocation": "NOASSERTION",
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceLocator": "pkg:pypi/eth-keyfile@0.10.0",
+          "referenceType": "purl"
+        }
+      ],
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "NOASSERTION",
+      "name": "eth-keyfile",
+      "versionInfo": "0.10.0"
+    },
+    {
+      "SPDXID": "SPDXRef-Package-eth-keys",
+      "copyrightText": "NOASSERTION",
+      "downloadLocation": "NOASSERTION",
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceLocator": "pkg:pypi/eth-keys@0.8.0",
+          "referenceType": "purl"
+        }
+      ],
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "NOASSERTION",
+      "name": "eth-keys",
+      "versionInfo": "0.8.0"
+    },
+    {
+      "SPDXID": "SPDXRef-Package-eth-rlp",
+      "copyrightText": "NOASSERTION",
+      "downloadLocation": "NOASSERTION",
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceLocator": "pkg:pypi/eth-rlp@3.0.0",
+          "referenceType": "purl"
+        }
+      ],
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "NOASSERTION",
+      "name": "eth-rlp",
+      "versionInfo": "3.0.0"
+    },
+    {
+      "SPDXID": "SPDXRef-Package-eth-typing",
+      "copyrightText": "NOASSERTION",
+      "downloadLocation": "NOASSERTION",
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceLocator": "pkg:pypi/eth-typing@6.0.0",
+          "referenceType": "purl"
+        }
+      ],
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "NOASSERTION",
+      "name": "eth-typing",
+      "versionInfo": "6.0.0"
+    },
+    {
+      "SPDXID": "SPDXRef-Package-eth-utils",
+      "copyrightText": "NOASSERTION",
+      "downloadLocation": "NOASSERTION",
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceLocator": "pkg:pypi/eth-utils@6.0.0",
+          "referenceType": "purl"
+        }
+      ],
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "NOASSERTION",
+      "name": "eth-utils",
+      "versionInfo": "6.0.0"
+    },
+    {
+      "SPDXID": "SPDXRef-Package-foundry",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "37b45855232e57624d90113b049ca54f0c92055bb5c1997fcbdc3076c7b89c10"
+        }
+      ],
+      "copyrightText": "NOASSERTION",
+      "downloadLocation": "https://github.com/foundry-rs/foundry/releases/download/v1.8.1/foundry_v1.8.1_linux_amd64.tar.gz",
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceLocator": "pkg:generic/foundry@1.8.1?download_url=https://github.com/foundry-rs/foundry/releases/download/v1.8.1/foundry_v1.8.1_linux_amd64.tar.gz",
+          "referenceType": "purl"
+        }
+      ],
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "NOASSERTION",
+      "name": "foundry",
+      "versionInfo": "1.8.1"
+    },
+    {
+      "SPDXID": "SPDXRef-Package-frozenlist",
+      "copyrightText": "NOASSERTION",
+      "downloadLocation": "NOASSERTION",
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceLocator": "pkg:pypi/frozenlist@1.8.0",
+          "referenceType": "purl"
+        }
+      ],
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "NOASSERTION",
+      "name": "frozenlist",
+      "versionInfo": "1.8.0"
+    },
+    {
+      "SPDXID": "SPDXRef-Package-hexbytes",
+      "copyrightText": "NOASSERTION",
+      "downloadLocation": "NOASSERTION",
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceLocator": "pkg:pypi/hexbytes@2.0.0",
+          "referenceType": "purl"
+        }
+      ],
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "NOASSERTION",
+      "name": "hexbytes",
+      "versionInfo": "2.0.0"
+    },
+    {
+      "SPDXID": "SPDXRef-Package-idna",
+      "copyrightText": "NOASSERTION",
+      "downloadLocation": "NOASSERTION",
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceLocator": "pkg:pypi/idna@3.19",
+          "referenceType": "purl"
+        }
+      ],
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "NOASSERTION",
+      "name": "idna",
+      "versionInfo": "3.19"
+    },
+    {
+      "SPDXID": "SPDXRef-Package-limechain-web3",
+      "copyrightText": "Copyright (c) 2026 LimeChain",
+      "downloadLocation": "https://github.com/limechain/omarchy-web3",
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceLocator": "pkg:github/limechain/omarchy-web3@0.1.0-dev",
+          "referenceType": "purl"
+        }
+      ],
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "name": "limechain-omarchy-web3",
+      "versionInfo": "0.1.0-dev"
+    },
+    {
+      "SPDXID": "SPDXRef-Package-multidict",
+      "copyrightText": "NOASSERTION",
+      "downloadLocation": "NOASSERTION",
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceLocator": "pkg:pypi/multidict@6.7.1",
+          "referenceType": "purl"
+        }
+      ],
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "NOASSERTION",
+      "name": "multidict",
+      "versionInfo": "6.7.1"
+    },
+    {
+      "SPDXID": "SPDXRef-Package-node",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "2f2c0da162318f0de47665410c7c8c2ed3d36c8f3105de4bbc61176c70a7cbf2"
+        }
+      ],
+      "copyrightText": "NOASSERTION",
+      "downloadLocation": "https://nodejs.org/dist/v24.20.0/node-v24.20.0-linux-x64.tar.xz",
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceLocator": "pkg:generic/node@24.20.0?download_url=https://nodejs.org/dist/v24.20.0/node-v24.20.0-linux-x64.tar.xz",
+          "referenceType": "purl"
+        }
+      ],
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "NOASSERTION",
+      "name": "node",
+      "versionInfo": "24.20.0"
+    },
+    {
+      "SPDXID": "SPDXRef-Package-packaging",
+      "copyrightText": "NOASSERTION",
+      "downloadLocation": "NOASSERTION",
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceLocator": "pkg:pypi/packaging@26.3",
+          "referenceType": "purl"
+        }
+      ],
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "NOASSERTION",
+      "name": "packaging",
+      "versionInfo": "26.3"
+    },
+    {
+      "SPDXID": "SPDXRef-Package-parsimonious",
+      "copyrightText": "NOASSERTION",
+      "downloadLocation": "NOASSERTION",
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceLocator": "pkg:pypi/parsimonious@0.10.0",
+          "referenceType": "purl"
+        }
+      ],
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "NOASSERTION",
+      "name": "parsimonious",
+      "versionInfo": "0.10.0"
+    },
+    {
+      "SPDXID": "SPDXRef-Package-prettytable",
+      "copyrightText": "NOASSERTION",
+      "downloadLocation": "NOASSERTION",
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceLocator": "pkg:pypi/prettytable@3.18.0",
+          "referenceType": "purl"
+        }
+      ],
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "NOASSERTION",
+      "name": "prettytable",
+      "versionInfo": "3.18.0"
+    },
+    {
+      "SPDXID": "SPDXRef-Package-propcache",
+      "copyrightText": "NOASSERTION",
+      "downloadLocation": "NOASSERTION",
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceLocator": "pkg:pypi/propcache@0.5.2",
+          "referenceType": "purl"
+        }
+      ],
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "NOASSERTION",
+      "name": "propcache",
+      "versionInfo": "0.5.2"
+    },
+    {
+      "SPDXID": "SPDXRef-Package-py-ecc",
+      "copyrightText": "NOASSERTION",
+      "downloadLocation": "NOASSERTION",
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceLocator": "pkg:pypi/py-ecc@8.0.0",
+          "referenceType": "purl"
+        }
+      ],
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "NOASSERTION",
+      "name": "py-ecc",
+      "versionInfo": "8.0.0"
+    },
+    {
+      "SPDXID": "SPDXRef-Package-pycryptodome",
+      "copyrightText": "NOASSERTION",
+      "downloadLocation": "NOASSERTION",
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceLocator": "pkg:pypi/pycryptodome@3.23.0",
+          "referenceType": "purl"
+        }
+      ],
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "NOASSERTION",
+      "name": "pycryptodome",
+      "versionInfo": "3.23.0"
+    },
+    {
+      "SPDXID": "SPDXRef-Package-pydantic",
+      "copyrightText": "NOASSERTION",
+      "downloadLocation": "NOASSERTION",
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceLocator": "pkg:pypi/pydantic@2.13.5",
+          "referenceType": "purl"
+        }
+      ],
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "NOASSERTION",
+      "name": "pydantic",
+      "versionInfo": "2.13.5"
+    },
+    {
+      "SPDXID": "SPDXRef-Package-pydantic-core",
+      "copyrightText": "NOASSERTION",
+      "downloadLocation": "NOASSERTION",
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceLocator": "pkg:pypi/pydantic-core@2.46.5",
+          "referenceType": "purl"
+        }
+      ],
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "NOASSERTION",
+      "name": "pydantic-core",
+      "versionInfo": "2.46.5"
+    },
+    {
+      "SPDXID": "SPDXRef-Package-pyunormalize",
+      "copyrightText": "NOASSERTION",
+      "downloadLocation": "NOASSERTION",
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceLocator": "pkg:pypi/pyunormalize@17.0.0",
+          "referenceType": "purl"
+        }
+      ],
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "NOASSERTION",
+      "name": "pyunormalize",
+      "versionInfo": "17.0.0"
+    },
+    {
+      "SPDXID": "SPDXRef-Package-regex",
+      "copyrightText": "NOASSERTION",
+      "downloadLocation": "NOASSERTION",
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceLocator": "pkg:pypi/regex@2026.8.31",
+          "referenceType": "purl"
+        }
+      ],
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "NOASSERTION",
+      "name": "regex",
+      "versionInfo": "2026.8.31"
+    },
+    {
+      "SPDXID": "SPDXRef-Package-requests",
+      "copyrightText": "NOASSERTION",
+      "downloadLocation": "NOASSERTION",
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceLocator": "pkg:pypi/requests@2.34.2",
+          "referenceType": "purl"
+        }
+      ],
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "NOASSERTION",
+      "name": "requests",
+      "versionInfo": "2.34.2"
+    },
+    {
+      "SPDXID": "SPDXRef-Package-rlp",
+      "copyrightText": "NOASSERTION",
+      "downloadLocation": "NOASSERTION",
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceLocator": "pkg:pypi/rlp@5.0.0",
+          "referenceType": "purl"
+        }
+      ],
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "NOASSERTION",
+      "name": "rlp",
+      "versionInfo": "5.0.0"
+    },
+    {
+      "SPDXID": "SPDXRef-Package-slither-analyzer",
+      "copyrightText": "NOASSERTION",
+      "downloadLocation": "NOASSERTION",
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceLocator": "pkg:pypi/slither-analyzer@0.11.6",
+          "referenceType": "purl"
+        }
+      ],
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "NOASSERTION",
+      "name": "slither-analyzer",
+      "versionInfo": "0.11.6"
+    },
+    {
+      "SPDXID": "SPDXRef-Package-solc",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "c8d35afdddc3cd2743ee88b8f25e0fecd16e2bdd5f2120f37e52cd9cc45ae0e6"
+        }
+      ],
+      "copyrightText": "NOASSERTION",
+      "downloadLocation": "https://github.com/argotorg/solidity/releases/download/v0.8.36/solc-static-linux",
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceLocator": "pkg:generic/solc@0.8.36?download_url=https://github.com/argotorg/solidity/releases/download/v0.8.36/solc-static-linux",
+          "referenceType": "purl"
+        }
+      ],
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "NOASSERTION",
+      "name": "solc",
+      "versionInfo": "0.8.36"
+    },
+    {
+      "SPDXID": "SPDXRef-Package-solc-select",
+      "copyrightText": "NOASSERTION",
+      "downloadLocation": "NOASSERTION",
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceLocator": "pkg:pypi/solc-select@1.2.0",
+          "referenceType": "purl"
+        }
+      ],
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "NOASSERTION",
+      "name": "solc-select",
+      "versionInfo": "1.2.0"
+    },
+    {
+      "SPDXID": "SPDXRef-Package-toolz",
+      "copyrightText": "NOASSERTION",
+      "downloadLocation": "NOASSERTION",
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceLocator": "pkg:pypi/toolz@1.1.0",
+          "referenceType": "purl"
+        }
+      ],
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "NOASSERTION",
+      "name": "toolz",
+      "versionInfo": "1.1.0"
+    },
+    {
+      "SPDXID": "SPDXRef-Package-types-requests",
+      "copyrightText": "NOASSERTION",
+      "downloadLocation": "NOASSERTION",
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceLocator": "pkg:pypi/types-requests@2.33.0.20260712",
+          "referenceType": "purl"
+        }
+      ],
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "NOASSERTION",
+      "name": "types-requests",
+      "versionInfo": "2.33.0.20260712"
+    },
+    {
+      "SPDXID": "SPDXRef-Package-typing-extensions",
+      "copyrightText": "NOASSERTION",
+      "downloadLocation": "NOASSERTION",
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceLocator": "pkg:pypi/typing-extensions@4.16.0",
+          "referenceType": "purl"
+        }
+      ],
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "NOASSERTION",
+      "name": "typing-extensions",
+      "versionInfo": "4.16.0"
+    },
+    {
+      "SPDXID": "SPDXRef-Package-typing-inspection",
+      "copyrightText": "NOASSERTION",
+      "downloadLocation": "NOASSERTION",
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceLocator": "pkg:pypi/typing-inspection@0.4.4",
+          "referenceType": "purl"
+        }
+      ],
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "NOASSERTION",
+      "name": "typing-inspection",
+      "versionInfo": "0.4.4"
+    },
+    {
+      "SPDXID": "SPDXRef-Package-urllib3",
+      "copyrightText": "NOASSERTION",
+      "downloadLocation": "NOASSERTION",
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceLocator": "pkg:pypi/urllib3@2.7.0",
+          "referenceType": "purl"
+        }
+      ],
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "NOASSERTION",
+      "name": "urllib3",
+      "versionInfo": "2.7.0"
+    },
+    {
+      "SPDXID": "SPDXRef-Package-uv",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "788f18abea7c5f55d6216e4f5613fd89d4d59b631efeec117b2b07fe72f1da21"
+        }
+      ],
+      "copyrightText": "NOASSERTION",
+      "downloadLocation": "https://github.com/astral-sh/uv/releases/download/0.12.7/uv-x86_64-unknown-linux-gnu.tar.gz",
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceLocator": "pkg:generic/uv@0.12.7?download_url=https://github.com/astral-sh/uv/releases/download/0.12.7/uv-x86_64-unknown-linux-gnu.tar.gz",
+          "referenceType": "purl"
+        }
+      ],
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "NOASSERTION",
+      "name": "uv",
+      "versionInfo": "0.12.7"
+    },
+    {
+      "SPDXID": "SPDXRef-Package-wcwidth",
+      "copyrightText": "NOASSERTION",
+      "downloadLocation": "NOASSERTION",
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceLocator": "pkg:pypi/wcwidth@0.8.3",
+          "referenceType": "purl"
+        }
+      ],
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "NOASSERTION",
+      "name": "wcwidth",
+      "versionInfo": "0.8.3"
+    },
+    {
+      "SPDXID": "SPDXRef-Package-web3",
+      "copyrightText": "NOASSERTION",
+      "downloadLocation": "NOASSERTION",
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceLocator": "pkg:pypi/web3@7.16.0",
+          "referenceType": "purl"
+        }
+      ],
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "NOASSERTION",
+      "name": "web3",
+      "versionInfo": "7.16.0"
+    },
+    {
+      "SPDXID": "SPDXRef-Package-websockets",
+      "copyrightText": "NOASSERTION",
+      "downloadLocation": "NOASSERTION",
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceLocator": "pkg:pypi/websockets@15.0.1",
+          "referenceType": "purl"
+        }
+      ],
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "NOASSERTION",
+      "name": "websockets",
+      "versionInfo": "15.0.1"
+    },
+    {
+      "SPDXID": "SPDXRef-Package-yarl",
+      "copyrightText": "NOASSERTION",
+      "downloadLocation": "NOASSERTION",
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceLocator": "pkg:pypi/yarl@1.24.5",
+          "referenceType": "purl"
+        }
+      ],
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "NOASSERTION",
+      "name": "yarl",
+      "versionInfo": "1.24.5"
+    }
+  ],
+  "relationships": [
+    {
+      "relatedSpdxElement": "SPDXRef-Package-limechain-web3",
+      "relationshipType": "DESCRIBES",
+      "spdxElementId": "SPDXRef-DOCUMENT"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-Package-aiohappyeyeballs",
+      "relationshipType": "DEPENDS_ON",
+      "spdxElementId": "SPDXRef-Package-limechain-web3"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-Package-aiohttp",
+      "relationshipType": "DEPENDS_ON",
+      "spdxElementId": "SPDXRef-Package-limechain-web3"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-Package-aiosignal",
+      "relationshipType": "DEPENDS_ON",
+      "spdxElementId": "SPDXRef-Package-limechain-web3"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-Package-annotated-types",
+      "relationshipType": "DEPENDS_ON",
+      "spdxElementId": "SPDXRef-Package-limechain-web3"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-Package-attrs",
+      "relationshipType": "DEPENDS_ON",
+      "spdxElementId": "SPDXRef-Package-limechain-web3"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-Package-bitarray",
+      "relationshipType": "DEPENDS_ON",
+      "spdxElementId": "SPDXRef-Package-limechain-web3"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-Package-bun",
+      "relationshipType": "DEPENDS_ON",
+      "spdxElementId": "SPDXRef-Package-limechain-web3"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-Package-cbor2",
+      "relationshipType": "DEPENDS_ON",
+      "spdxElementId": "SPDXRef-Package-limechain-web3"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-Package-certifi",
+      "relationshipType": "DEPENDS_ON",
+      "spdxElementId": "SPDXRef-Package-limechain-web3"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-Package-charset-normalizer",
+      "relationshipType": "DEPENDS_ON",
+      "spdxElementId": "SPDXRef-Package-limechain-web3"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-Package-ckzg",
+      "relationshipType": "DEPENDS_ON",
+      "spdxElementId": "SPDXRef-Package-limechain-web3"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-Package-crytic-compile",
+      "relationshipType": "DEPENDS_ON",
+      "spdxElementId": "SPDXRef-Package-limechain-web3"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-Package-cytoolz",
+      "relationshipType": "DEPENDS_ON",
+      "spdxElementId": "SPDXRef-Package-limechain-web3"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-Package-echidna",
+      "relationshipType": "DEPENDS_ON",
+      "spdxElementId": "SPDXRef-Package-limechain-web3"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-Package-eth-abi",
+      "relationshipType": "DEPENDS_ON",
+      "spdxElementId": "SPDXRef-Package-limechain-web3"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-Package-eth-account",
+      "relationshipType": "DEPENDS_ON",
+      "spdxElementId": "SPDXRef-Package-limechain-web3"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-Package-eth-hash",
+      "relationshipType": "DEPENDS_ON",
+      "spdxElementId": "SPDXRef-Package-limechain-web3"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-Package-eth-keyfile",
+      "relationshipType": "DEPENDS_ON",
+      "spdxElementId": "SPDXRef-Package-limechain-web3"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-Package-eth-keys",
+      "relationshipType": "DEPENDS_ON",
+      "spdxElementId": "SPDXRef-Package-limechain-web3"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-Package-eth-rlp",
+      "relationshipType": "DEPENDS_ON",
+      "spdxElementId": "SPDXRef-Package-limechain-web3"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-Package-eth-typing",
+      "relationshipType": "DEPENDS_ON",
+      "spdxElementId": "SPDXRef-Package-limechain-web3"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-Package-eth-utils",
+      "relationshipType": "DEPENDS_ON",
+      "spdxElementId": "SPDXRef-Package-limechain-web3"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-Package-foundry",
+      "relationshipType": "DEPENDS_ON",
+      "spdxElementId": "SPDXRef-Package-limechain-web3"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-Package-frozenlist",
+      "relationshipType": "DEPENDS_ON",
+      "spdxElementId": "SPDXRef-Package-limechain-web3"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-Package-hexbytes",
+      "relationshipType": "DEPENDS_ON",
+      "spdxElementId": "SPDXRef-Package-limechain-web3"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-Package-idna",
+      "relationshipType": "DEPENDS_ON",
+      "spdxElementId": "SPDXRef-Package-limechain-web3"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-Package-multidict",
+      "relationshipType": "DEPENDS_ON",
+      "spdxElementId": "SPDXRef-Package-limechain-web3"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-Package-node",
+      "relationshipType": "DEPENDS_ON",
+      "spdxElementId": "SPDXRef-Package-limechain-web3"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-Package-packaging",
+      "relationshipType": "DEPENDS_ON",
+      "spdxElementId": "SPDXRef-Package-limechain-web3"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-Package-parsimonious",
+      "relationshipType": "DEPENDS_ON",
+      "spdxElementId": "SPDXRef-Package-limechain-web3"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-Package-prettytable",
+      "relationshipType": "DEPENDS_ON",
+      "spdxElementId": "SPDXRef-Package-limechain-web3"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-Package-propcache",
+      "relationshipType": "DEPENDS_ON",
+      "spdxElementId": "SPDXRef-Package-limechain-web3"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-Package-py-ecc",
+      "relationshipType": "DEPENDS_ON",
+      "spdxElementId": "SPDXRef-Package-limechain-web3"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-Package-pycryptodome",
+      "relationshipType": "DEPENDS_ON",
+      "spdxElementId": "SPDXRef-Package-limechain-web3"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-Package-pydantic",
+      "relationshipType": "DEPENDS_ON",
+      "spdxElementId": "SPDXRef-Package-limechain-web3"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-Package-pydantic-core",
+      "relationshipType": "DEPENDS_ON",
+      "spdxElementId": "SPDXRef-Package-limechain-web3"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-Package-pyunormalize",
+      "relationshipType": "DEPENDS_ON",
+      "spdxElementId": "SPDXRef-Package-limechain-web3"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-Package-regex",
+      "relationshipType": "DEPENDS_ON",
+      "spdxElementId": "SPDXRef-Package-limechain-web3"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-Package-requests",
+      "relationshipType": "DEPENDS_ON",
+      "spdxElementId": "SPDXRef-Package-limechain-web3"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-Package-rlp",
+      "relationshipType": "DEPENDS_ON",
+      "spdxElementId": "SPDXRef-Package-limechain-web3"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-Package-slither-analyzer",
+      "relationshipType": "DEPENDS_ON",
+      "spdxElementId": "SPDXRef-Package-limechain-web3"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-Package-solc",
+      "relationshipType": "DEPENDS_ON",
+      "spdxElementId": "SPDXRef-Package-limechain-web3"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-Package-solc-select",
+      "relationshipType": "DEPENDS_ON",
+      "spdxElementId": "SPDXRef-Package-limechain-web3"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-Package-toolz",
+      "relationshipType": "DEPENDS_ON",
+      "spdxElementId": "SPDXRef-Package-limechain-web3"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-Package-types-requests",
+      "relationshipType": "DEPENDS_ON",
+      "spdxElementId": "SPDXRef-Package-limechain-web3"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-Package-typing-extensions",
+      "relationshipType": "DEPENDS_ON",
+      "spdxElementId": "SPDXRef-Package-limechain-web3"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-Package-typing-inspection",
+      "relationshipType": "DEPENDS_ON",
+      "spdxElementId": "SPDXRef-Package-limechain-web3"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-Package-urllib3",
+      "relationshipType": "DEPENDS_ON",
+      "spdxElementId": "SPDXRef-Package-limechain-web3"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-Package-uv",
+      "relationshipType": "DEPENDS_ON",
+      "spdxElementId": "SPDXRef-Package-limechain-web3"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-Package-wcwidth",
+      "relationshipType": "DEPENDS_ON",
+      "spdxElementId": "SPDXRef-Package-limechain-web3"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-Package-web3",
+      "relationshipType": "DEPENDS_ON",
+      "spdxElementId": "SPDXRef-Package-limechain-web3"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-Package-websockets",
+      "relationshipType": "DEPENDS_ON",
+      "spdxElementId": "SPDXRef-Package-limechain-web3"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-Package-yarl",
+      "relationshipType": "DEPENDS_ON",
+      "spdxElementId": "SPDXRef-Package-limechain-web3"
+    }
+  ],
+  "spdxVersion": "SPDX-2.3"
+}

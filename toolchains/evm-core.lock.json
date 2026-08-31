@@ -1,0 +1,91 @@
+{
+  "schema": 1,
+  "profile": "evm-core",
+  "platform": "linux-x86_64",
+  "generated_at": "2026-08-31T00:00:00Z",
+  "artifacts": [
+    {
+      "id": "foundry",
+      "version": "1.8.1",
+      "url": "https://github.com/foundry-rs/foundry/releases/download/v1.8.1/foundry_v1.8.1_linux_amd64.tar.gz",
+      "sha256": "37b45855232e57624d90113b049ca54f0c92055bb5c1997fcbdc3076c7b89c10",
+      "archive": "tar.gz",
+      "strip_components": 0,
+      "bins": {
+        "forge": "forge",
+        "cast": "cast",
+        "anvil": "anvil",
+        "chisel": "chisel"
+      }
+    },
+    {
+      "id": "node",
+      "version": "24.20.0",
+      "url": "https://nodejs.org/dist/v24.20.0/node-v24.20.0-linux-x64.tar.xz",
+      "sha256": "2f2c0da162318f0de47665410c7c8c2ed3d36c8f3105de4bbc61176c70a7cbf2",
+      "archive": "tar.xz",
+      "strip_components": 1,
+      "bins": {
+        "node": "bin/node",
+        "npm": "bin/npm",
+        "npx": "bin/npx",
+        "corepack": "bin/corepack"
+      }
+    },
+    {
+      "id": "bun",
+      "version": "1.4.0",
+      "url": "https://github.com/oven-sh/bun/releases/download/bun-v1.4.0/bun-linux-x64.zip",
+      "sha256": "2d03fb5fb83ac8b567aca0a281b2ce1a1a19d488f56c2968d88c3f25e92fe452",
+      "archive": "zip",
+      "strip_components": 1,
+      "bins": {
+        "bun": "bun",
+        "bunx": "bun"
+      }
+    },
+    {
+      "id": "echidna",
+      "version": "2.3.3",
+      "url": "https://github.com/crytic/echidna/releases/download/v2.3.3/echidna-2.3.3-x86_64-linux.tar.gz",
+      "sha256": "436d26cb5af34c6c525812b857ac53f218c7f6ad07d69495ef88bc4cdc85c764",
+      "archive": "tar.gz",
+      "strip_components": 0,
+      "bins": {
+        "echidna": "echidna"
+      }
+    },
+    {
+      "id": "uv",
+      "version": "0.12.7",
+      "url": "https://github.com/astral-sh/uv/releases/download/0.12.7/uv-x86_64-unknown-linux-gnu.tar.gz",
+      "sha256": "788f18abea7c5f55d6216e4f5613fd89d4d59b631efeec117b2b07fe72f1da21",
+      "archive": "tar.gz",
+      "strip_components": 1,
+      "bins": {
+        "uv": "uv",
+        "uvx": "uvx"
+      }
+    },
+    {
+      "id": "solc",
+      "version": "0.8.36",
+      "url": "https://github.com/argotorg/solidity/releases/download/v0.8.36/solc-static-linux",
+      "sha256": "c8d35afdddc3cd2743ee88b8f25e0fecd16e2bdd5f2120f37e52cd9cc45ae0e6",
+      "archive": "raw",
+      "strip_components": 0,
+      "bins": {
+        "solc": "solc"
+      }
+    }
+  ],
+  "python": {
+    "version": ">=3.10,<3.15",
+    "packages": {
+      "crytic-compile": "0.4.2",
+      "slither": "0.11.6",
+      "solc-select": "1.2.0"
+    },
+    "requirements": "python-requirements.lock"
+  }
+}

@@ -1,0 +1,734 @@
+#!/usr/bin/env python3
+"""Non-custodial command surface for LimeChain Web3 Workstation."""
+
+from __future__ import annotations
+
+import argparse
+import hashlib
+import ipaddress
+import json
+import os
+import re
+import shutil
+import socket
+import stat
+import subprocess
+import sys
+import time
+import urllib.error
+import urllib.parse
+import urllib.request
+from pathlib import Path
+from typing import Any
+
+
+APP_ID = "limechain.web3"
+MENU_BEGIN = "// BEGIN limechain.web3 (managed by limechain-web3)"
+MENU_END = "// END limechain.web3"
+SENSITIVE_KEY = re.compile(r"(private.?key|mnemonic|seed|keystore|password|secret)", re.I)
+
+
+def _home() -> Path:
+    return Path(os.environ.get("LCW3_HOME", str(Path.home()))).expanduser()
+
+
+def _xdg(name: str, fallback: Path) -> Path:
+    return Path(os.environ.get(name, str(fallback))).expanduser()
+
+
+def data_home() -> Path:
+    return _xdg("LCW3_DATA_HOME", _home() / ".local" / "share")
+
+
+def config_home() -> Path:
+    return _xdg("LCW3_CONFIG_HOME", _home() / ".config")
+
+
+def state_home() -> Path:
+    return _xdg("LCW3_STATE_HOME", _home() / ".local" / "state")
+
+
+def app_root() -> Path:
+    return Path(os.environ.get("LCW3_APP_ROOT", str(data_home() / "limechain-web3")))
+
+
+def config_path() -> Path:
+    return Path(os.environ.get("LCW3_CONFIG_FILE", str(config_home() / "limechain-web3" / "config.json")))
+
+
+def lock_path() -> Path:
+    override = os.environ.get("LCW3_LOCK_FILE")
+    return Path(override) if override else app_root() / "toolchains" / "evm-core.lock.json"
+
+
+def raw_bin_dir() -> Path:
+    return app_root() / "raw-bin"
+
+
+def env_bin_dir() -> Path:
+    return app_root() / "env" / "bin"
+
+
+def sample_root() -> Path:
+    return app_root() / "samples" / "counter"
+
+
+def systemd_unit_path() -> Path:
+    return Path(
+        os.environ.get(
+            "LCW3_SYSTEMD_UNIT",
+            str(config_home() / "systemd" / "user" / "limechain-web3-anvil.service"),
+        )
+    )
+
+
+def menu_path() -> Path:
+    return Path(
+        os.environ.get(
+            "LCW3_MENU_FILE",
+            str(config_home() / "omarchy" / "extensions" / "omarchy-menu.jsonc"),
+        )
+    )
+
+
+def json_dump(value: Any) -> str:
+    return json.dumps(value, sort_keys=True, separators=(",", ":"))
+
+
+def read_json(path: Path) -> dict[str, Any]:
+    try:
+        value = json.loads(path.read_text(encoding="utf-8"))
+    except FileNotFoundError as exc:
+        raise RuntimeError(f"missing required file: {path}") from exc
+    except json.JSONDecodeError as exc:
+        raise RuntimeError(f"invalid JSON in {path}: {exc}") from exc
+    if not isinstance(value, dict):
+        raise RuntimeError(f"expected a JSON object in {path}")
+    return value
+
+
+def load_config() -> dict[str, Any]:
+    return read_json(config_path())
+
+
+def write_config(config: dict[str, Any]) -> None:
+    path = config_path()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temp = path.with_suffix(".tmp")
+    temp.write_text(json.dumps(config, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    os.chmod(temp, 0o600)
+    temp.replace(path)
+
+
+def validate_public_rpc_url(value: str, *, allow_local: bool = False, resolve: bool = False) -> str:
+    try:
+        parsed = urllib.parse.urlsplit(value)
+    except ValueError as exc:
+        raise RuntimeError("RPC URL is malformed") from exc
+    if parsed.scheme not in {"http", "https"} or not parsed.hostname:
+        raise RuntimeError("RPC URL must use http:// or https://")
+    if parsed.username or parsed.password or parsed.query or parsed.fragment:
+        raise RuntimeError("RPC URLs containing credentials, query strings, or fragments are refused")
+    hostname = parsed.hostname.lower()
+    try:
+        literal_ip = ipaddress.ip_address(hostname)
+    except ValueError:
+        literal_ip = None
+    is_literal_loopback = literal_ip is not None and literal_ip.is_loopback
+    is_named_loopback = hostname == "localhost"
+    if allow_local:
+        if not (is_literal_loopback or is_named_loopback):
+            raise RuntimeError("local RPC must be bound to loopback")
+    elif is_literal_loopback or is_named_loopback:
+        raise RuntimeError("use the local RPC configuration for loopback endpoints")
+    elif literal_ip is not None and not literal_ip.is_global:
+        raise RuntimeError("remote RPC must not target a private, link-local, or reserved address")
+    if resolve and not allow_local:
+        try:
+            addresses = {
+                ipaddress.ip_address(item[4][0])
+                for item in socket.getaddrinfo(hostname, parsed.port or (443 if parsed.scheme == "https" else 80))
+            }
+        except (OSError, ValueError) as exc:
+            raise RuntimeError("remote RPC hostname could not be resolved safely") from exc
+        if not addresses or any(not address.is_global for address in addresses):
+            raise RuntimeError("remote RPC resolved to a non-public address")
+    return urllib.parse.urlunsplit(parsed)
+
+
+def validate_explorer_url(value: str) -> str:
+    if not value:
+        return ""
+    parsed = urllib.parse.urlsplit(value)
+    if parsed.scheme != "https" or not parsed.hostname:
+        raise RuntimeError("explorer URL must use https://")
+    if parsed.username or parsed.password or parsed.query or parsed.fragment:
+        raise RuntimeError("explorer URL must not contain credentials, a query, or a fragment")
+    return urllib.parse.urlunsplit(parsed).rstrip("/")
+
+
+def rpc_call(url: str, method: str, params: list[Any], timeout: float) -> Any:
+    payload = json.dumps({"jsonrpc": "2.0", "id": 1, "method": method, "params": params}).encode()
+    request = urllib.request.Request(
+        url,
+        data=payload,
+        method="POST",
+        headers={"Content-Type": "application/json", "User-Agent": "limechain-web3/0.1"},
+    )
+    try:
+        opener = urllib.request.build_opener(_NoRedirectHandler())
+        with opener.open(request, timeout=timeout) as response:
+            if response.length is not None and response.length > 1_048_576:
+                raise RuntimeError("RPC response exceeded the 1 MiB limit")
+            body = response.read(1_048_577)
+    except (urllib.error.URLError, TimeoutError, OSError) as exc:
+        raise RuntimeError(f"RPC unavailable: {exc.__class__.__name__}") from exc
+    if len(body) > 1_048_576:
+        raise RuntimeError("RPC response exceeded the 1 MiB limit")
+    try:
+        decoded = json.loads(body)
+    except json.JSONDecodeError as exc:
+        raise RuntimeError("RPC returned invalid JSON") from exc
+    if not isinstance(decoded, dict) or decoded.get("error"):
+        raise RuntimeError("RPC returned an error")
+    return decoded.get("result")
+
+
+def from_hex(value: Any) -> int | None:
+    if not isinstance(value, str) or not value.startswith("0x"):
+        return None
+    try:
+        return int(value, 16)
+    except ValueError:
+        return None
+
+
+class _NoRedirectHandler(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, req: Any, fp: Any, code: int, msg: str, headers: Any, newurl: str) -> None:
+        return None
+
+
+def rpc_snapshot(url: str, timeout: float, *, local: bool) -> dict[str, Any]:
+    safe_url = validate_public_rpc_url(url, allow_local=local, resolve=not local)
+    started = time.monotonic()
+    chain_id = from_hex(rpc_call(safe_url, "eth_chainId", [], timeout))
+    block_height = from_hex(rpc_call(safe_url, "eth_blockNumber", [], timeout))
+    gas_price = from_hex(rpc_call(safe_url, "eth_gasPrice", [], timeout))
+    latest_block = rpc_call(safe_url, "eth_getBlockByNumber", ["latest", False], timeout)
+    base_fee = from_hex(latest_block.get("baseFeePerGas")) if isinstance(latest_block, dict) else None
+    return {
+        "ok": True,
+        "chain_id": chain_id,
+        "block_height": block_height,
+        "gas_gwei": round(gas_price / 1_000_000_000, 3) if gas_price is not None else None,
+        "base_fee_gwei": round(base_fee / 1_000_000_000, 3) if base_fee is not None else None,
+        "latency_ms": round((time.monotonic() - started) * 1000),
+    }
+
+
+def inactive_snapshot(reason: str) -> dict[str, Any]:
+    return {
+        "ok": False,
+        "chain_id": None,
+        "block_height": None,
+        "gas_gwei": None,
+        "base_fee_gwei": None,
+        "latency_ms": None,
+        "error": reason,
+    }
+
+
+def systemctl(*args: str, check: bool = False) -> subprocess.CompletedProcess[str]:
+    if not shutil.which("systemctl"):
+        return subprocess.CompletedProcess(["systemctl", *args], 127, "", "systemctl unavailable")
+    return subprocess.run(
+        ["systemctl", "--user", *args],
+        check=check,
+        capture_output=True,
+        text=True,
+        timeout=10,
+    )
+
+
+def anvil_service_active() -> bool:
+    return systemctl("is-active", "--quiet", "limechain-web3-anvil.service").returncode == 0
+
+
+def command_status(args: argparse.Namespace) -> int:
+    config = load_config()
+    timeout = float(config.get("telemetry", {}).get("timeout_seconds", 3))
+    timeout = min(10.0, max(0.5, timeout))
+    chain = config.get("chain", {})
+    local = config.get("local", {})
+
+    remote_url = str(chain.get("rpc_url", "")).strip()
+    if remote_url:
+        try:
+            remote = rpc_snapshot(remote_url, timeout, local=False)
+        except RuntimeError as exc:
+            remote = inactive_snapshot(str(exc))
+    else:
+        remote = inactive_snapshot("remote RPC not configured")
+
+    local_url = str(local.get("rpc_url", "http://127.0.0.1:8545")).strip()
+    try:
+        local_report = rpc_snapshot(local_url, timeout, local=True)
+    except RuntimeError as exc:
+        local_report = inactive_snapshot(str(exc))
+
+    report = {
+        "schema": 1,
+        "chain": {
+            "name": str(chain.get("name", "Unconfigured")),
+            "expected_chain_id": chain.get("chain_id"),
+            "explorer_url": str(chain.get("explorer_url", "")),
+            **remote,
+        },
+        "local": {
+            "expected_chain_id": local.get("chain_id", 31337),
+            "service_active": anvil_service_active(),
+            **local_report,
+        },
+    }
+    if args.json:
+        print(json_dump(report))
+    else:
+        chain_report = report["chain"]
+        local_status = "healthy" if report["local"]["ok"] else "offline"
+        if chain_report["ok"]:
+            print(
+                f"{chain_report['name']}: block {chain_report['block_height']:,}, "
+                f"gas {chain_report['gas_gwei']} gwei; local RPC {local_status}"
+            )
+        else:
+            print(f"{chain_report['name']}: {chain_report['error']}; local RPC {local_status}")
+    return 0
+
+
+def secret_paths(value: Any, prefix: str = "") -> list[str]:
+    findings: list[str] = []
+    if isinstance(value, dict):
+        for key, child in value.items():
+            path = f"{prefix}.{key}" if prefix else str(key)
+            if SENSITIVE_KEY.search(str(key)):
+                findings.append(path)
+            findings.extend(secret_paths(child, path))
+    elif isinstance(value, list):
+        for index, child in enumerate(value):
+            findings.extend(secret_paths(child, f"{prefix}[{index}]"))
+    return findings
+
+
+def _tool_version(path: Path) -> str:
+    try:
+        completed = subprocess.run(
+            [str(path), "--version"], capture_output=True, text=True, timeout=5, env=sanitized_env()
+        )
+    except (OSError, subprocess.SubprocessError):
+        return ""
+    if completed.returncode != 0:
+        return ""
+    return " | ".join((completed.stdout or completed.stderr).strip().splitlines())
+
+
+def _python_package_version(distribution: str) -> str:
+    python = app_root() / "python" / "bin" / "python"
+    try:
+        completed = subprocess.run(
+            [str(python), "-c", "import importlib.metadata,sys; print(importlib.metadata.version(sys.argv[1]))", distribution],
+            capture_output=True,
+            text=True,
+            timeout=5,
+            env=sanitized_env(),
+        )
+    except (OSError, subprocess.SubprocessError):
+        return ""
+    return completed.stdout.strip() if completed.returncode == 0 else ""
+
+
+def verify_tree_manifest(root: Path) -> tuple[bool, str]:
+    manifest = root / ".limechain-files.sha256"
+    if not manifest.is_file():
+        return False, "file manifest missing"
+    try:
+        for line in manifest.read_text(encoding="utf-8").splitlines():
+            digest, relative = line.split(maxsplit=1)
+            relative = relative.lstrip("* ")
+            target = (root / relative).resolve()
+            if root.resolve() not in target.parents and target != root.resolve():
+                return False, f"unsafe manifest path: {relative}"
+            if not target.is_file():
+                return False, f"missing: {relative}"
+            hasher = hashlib.sha256()
+            with target.open("rb") as stream:
+                while chunk := stream.read(1024 * 1024):
+                    hasher.update(chunk)
+            if hasher.hexdigest() != digest:
+                return False, f"modified: {relative}"
+    except (OSError, ValueError) as exc:
+        return False, f"manifest error: {exc}"
+    return True, "verified"
+
+
+def command_doctor(args: argparse.Namespace) -> int:
+    checks: list[dict[str, Any]] = []
+
+    def add(name: str, ok: bool, detail: str) -> None:
+        checks.append({"name": name, "ok": ok, "detail": detail})
+
+    add("linux", sys.platform.startswith("linux"), sys.platform)
+    omarchy = shutil.which("omarchy")
+    add("omarchy-cli", bool(omarchy), omarchy or "not found")
+    if shutil.which("pacman"):
+        result = subprocess.run(["pacman", "-Q", "omarchy"], capture_output=True, text=True, timeout=5)
+        package = result.stdout.strip()
+        add("omarchy-quattro", result.returncode == 0 and re.search(r"\s4\.", package) is not None, package or "not installed")
+    else:
+        add("omarchy-quattro", False, "pacman unavailable")
+
+    try:
+        config = load_config()
+        secrets = secret_paths(config)
+        mode = stat.S_IMODE(config_path().stat().st_mode)
+        add("config", not secrets and mode & 0o077 == 0, f"mode={mode:o}; sensitive fields={secrets or 'none'}")
+    except (RuntimeError, OSError) as exc:
+        add("config", False, str(exc))
+
+    expected: dict[str, str] = {}
+    try:
+        lock = read_json(lock_path())
+        for artifact in lock.get("artifacts", []):
+            artifact_root = app_root() / "toolchains" / "installed" / str(artifact.get("id")) / str(artifact.get("version"))
+            tree_ok, tree_detail = verify_tree_manifest(artifact_root)
+            add(f"artifact:{artifact.get('id')}", tree_ok, tree_detail)
+            for tool in artifact.get("bins", {}):
+                expected[tool] = str(artifact.get("version", ""))
+        for tool in ("crytic-compile", "slither", "solc-select"):
+            expected[tool] = str(lock.get("python", {}).get("packages", {}).get(tool, ""))
+    except RuntimeError as exc:
+        add("lockfile", False, str(exc))
+    else:
+        add("lockfile", True, str(lock_path()))
+
+    for tool, version in sorted(expected.items()):
+        path = raw_bin_dir() / tool
+        actual = _python_package_version("solc-select") if tool == "solc-select" and path.is_file() else _tool_version(path) if path.is_file() else ""
+        independently_versioned = tool in {"corepack", "npm", "npx"}
+        version_ok = bool(actual) and (independently_versioned or not version or version.lstrip("v") in actual)
+        add(f"tool:{tool}", version_ok, actual or "missing")
+
+    add("anvil-unit", systemd_unit_path().is_file(), str(systemd_unit_path()))
+    add("shell-plugin", (config_home() / "omarchy" / "plugins" / APP_ID / "manifest.json").is_file(), APP_ID)
+    add("agent-skill", (_home() / ".agents" / "skills" / "limechain-web3" / "SKILL.md").is_file(), "limechain-web3")
+
+    ok = all(item["ok"] for item in checks)
+    report = {"ok": ok, "checks": checks}
+    if args.json:
+        print(json_dump(report))
+    else:
+        for item in checks:
+            print(f"{'ok' if item['ok'] else 'FAIL':<4} {item['name']}: {item['detail']}")
+    return 0 if ok else 1
+
+
+def command_configure(args: argparse.Namespace) -> int:
+    config = load_config()
+    chain = config.setdefault("chain", {})
+    if args.clear:
+        chain.update({"name": "Unconfigured", "chain_id": None, "rpc_url": "", "explorer_url": ""})
+    else:
+        chain["name"] = args.name
+        chain["chain_id"] = args.chain_id
+        chain["rpc_url"] = validate_public_rpc_url(args.rpc_url)
+        chain["explorer_url"] = validate_explorer_url(args.explorer_url)
+    if secret_paths(config):
+        raise RuntimeError("configuration contains a sensitive-looking field and was not written")
+    write_config(config)
+    print(f"Updated {config_path()}")
+    return 0
+
+
+def command_anvil(args: argparse.Namespace) -> int:
+    if args.action == "status":
+        active = anvil_service_active()
+        print("active" if active else "inactive")
+        return 0 if active else 3
+    if not systemd_unit_path().is_file():
+        raise RuntimeError(f"Anvil service is not installed: {systemd_unit_path()}")
+    action = "restart" if args.action == "reset" else args.action
+    result = systemctl(action, "limechain-web3-anvil.service")
+    if result.returncode != 0:
+        raise RuntimeError((result.stderr or result.stdout).strip() or f"systemctl {action} failed")
+    print(f"Anvil {args.action} complete")
+    return 0
+
+
+def command_fork(args: argparse.Namespace) -> int:
+    url = validate_public_rpc_url(args.rpc_url, resolve=True)
+    anvil = raw_bin_dir() / "anvil"
+    if not anvil.is_file():
+        raise RuntimeError("verified Anvil binary is not installed")
+    argv = [
+        str(anvil),
+        "--fork-url",
+        url,
+        "--host",
+        "127.0.0.1",
+        "--port",
+        str(args.port),
+        "--chain-id",
+        str(args.chain_id),
+        "--accounts",
+        "0",
+        "--silent",
+    ]
+    os.execve(str(anvil), argv, sanitized_env())
+
+
+def command_scaffold(args: argparse.Namespace) -> int:
+    source = sample_root()
+    target = Path(args.directory).expanduser().resolve()
+    if not source.is_dir():
+        raise RuntimeError(f"sample project is not installed: {source}")
+    if target.exists():
+        raise RuntimeError(f"refusing to overwrite existing path: {target}")
+    target.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copytree(source, target)
+    print(f"Created {target}")
+    return 0
+
+
+def dangerous_tool_invocation(tool: str, argv: list[str]) -> str | None:
+    lowered = [part.lower() for part in argv]
+    sensitive_flags = {"--private-key", "--mnemonic", "--keystore", "--password", "--aws"}
+    if any(part in sensitive_flags or any(part.startswith(flag + "=") for flag in sensitive_flags) for part in lowered):
+        return "credential and signing flags are outside this workstation's boundary"
+    rpc_flags = {"--rpc-url", "--eth-rpc-url", "--fork-url"}
+    for index, part in enumerate(lowered):
+        value = ""
+        if part in rpc_flags and index + 1 < len(argv):
+            value = argv[index + 1]
+        else:
+            for flag in rpc_flags:
+                if part.startswith(flag + "="):
+                    value = argv[index][len(flag) + 1 :]
+                    break
+        if value:
+            try:
+                validate_public_rpc_url(value, allow_local=True)
+            except RuntimeError:
+                try:
+                    validate_public_rpc_url(value, resolve=True)
+                except RuntimeError as exc:
+                    return str(exc)
+    if tool == "cast":
+        blocked_commands = {"send", "publish", "mktx", "wallet"}
+        command = next((part for part in lowered if part in blocked_commands), "")
+        if command:
+            return f"cast {command} can sign or submit transactions"
+        if "rpc" in lowered and any(re.match(r"(eth_send|personal_|wallet_)", part) for part in lowered):
+            return "transaction and wallet JSON-RPC methods are refused"
+    if tool == "forge":
+        if "create" in lowered or "--broadcast" in lowered:
+            return "deployment and broadcast operations are refused"
+    return None
+
+
+def sanitized_env() -> dict[str, str]:
+    keep = {"HOME", "LANG", "LC_ALL", "PATH", "TERM", "TMPDIR", "XDG_RUNTIME_DIR"}
+    env = {key: value for key, value in os.environ.items() if key in keep}
+    env["PATH"] = os.pathsep.join([str(env_bin_dir()), "/usr/local/bin", "/usr/bin", "/bin"])
+    env.pop("ETH_FROM", None)
+    return env
+
+
+def command_exec(args: argparse.Namespace) -> int:
+    tool = args.tool
+    if tool == "anvil":
+        if args.tool_args:
+            raise RuntimeError("use 'limechain-web3 anvil' or 'limechain-web3 fork'; arbitrary Anvil flags are refused")
+        raw = raw_bin_dir() / "anvil"
+        argv = [str(raw), "--host", "127.0.0.1", "--accounts", "0", "--silent"]
+    else:
+        reason = dangerous_tool_invocation(tool, args.tool_args)
+        if reason:
+            raise RuntimeError(reason)
+        raw = raw_bin_dir() / tool
+        argv = [str(raw), *args.tool_args]
+    if not raw.is_file() or not os.access(raw, os.X_OK):
+        raise RuntimeError(f"verified tool is missing: {raw}")
+    completed = subprocess.run(argv, env=sanitized_env())
+    return completed.returncode
+
+
+def command_shell(args: argparse.Namespace) -> int:
+    shell = os.environ.get("SHELL", "/bin/zsh")
+    if not Path(shell).is_file():
+        shell = "/bin/bash"
+    env = sanitized_env()
+    env["LIMECHAIN_WEB3_ENV"] = "evm-core"
+    print("Entering verified evm-core shell. Signing and broadcast wrappers remain blocked.")
+    return subprocess.run([shell, "-l"], env=env).returncode
+
+
+def command_open_explorer(args: argparse.Namespace) -> int:
+    config = load_config()
+    base = validate_explorer_url(str(config.get("chain", {}).get("explorer_url", "")))
+    if not base:
+        raise RuntimeError("explorer URL is not configured")
+    target = base
+    if args.kind and args.value:
+        if args.kind == "block" and not re.fullmatch(r"[0-9]+", args.value):
+            raise RuntimeError("block must be a decimal number")
+        if args.kind in {"tx", "address"} and not re.fullmatch(r"0x[0-9a-fA-F]{40,64}", args.value):
+            raise RuntimeError(f"invalid {args.kind} value")
+        target = f"{base}/{args.kind}/{args.value}"
+    subprocess.run(["xdg-open", target], check=True, timeout=10)
+    return 0
+
+
+def _strip_jsonc_comments(text: str) -> str:
+    text = re.sub(r"/\*.*?\*/", "", text, flags=re.S)
+    return re.sub(r"//[^\n]*", "", text)
+
+
+def install_menu_extension() -> None:
+    path = menu_path()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    if path.exists():
+        text = path.read_text(encoding="utf-8")
+    else:
+        text = "{\n}\n"
+    if MENU_BEGIN in text:
+        return
+    close_index = text.rfind("}")
+    if close_index < 0:
+        raise RuntimeError(f"menu extension is not a JSONC object: {path}")
+    before = text[:close_index]
+    significant = _strip_jsonc_comments(before).rstrip()
+    delimiter = "" if significant.endswith(("{", ",")) else ","
+    block = (
+        f"  {MENU_BEGIN}\n"
+        f"  {delimiter}\"web3\": {{\"icon\":\"󰡪\",\"label\":\"Web3 Workstation\"}},\n"
+        "  \"web3.status\": {\"icon\":\"󰄬\",\"label\":\"Chain Status\",\"action\":\"omarchy-shell shell toggle limechain.web3\"},\n"
+        "  \"web3.shell\": {\"icon\":\"\",\"label\":\"Verified EVM Shell\",\"action\":\"omarchy-launch-floating-terminal-with-presentation 'limechain-web3 shell'\"},\n"
+        "  \"web3.anvil-start\": {\"icon\":\"󰐊\",\"label\":\"Start Local Anvil\",\"action\":\"omarchy-launch-floating-terminal-with-presentation 'limechain-web3 anvil start'\"},\n"
+        "  \"web3.anvil-stop\": {\"icon\":\"󰓛\",\"label\":\"Stop Local Anvil\",\"action\":\"omarchy-launch-floating-terminal-with-presentation 'limechain-web3 anvil stop'\"},\n"
+        "  \"web3.doctor\": {\"icon\":\"󰒓\",\"label\":\"Run Workstation Doctor\",\"action\":\"omarchy-launch-floating-terminal-with-presentation 'limechain-web3 doctor; read -r'\"}\n"
+        f"  {MENU_END}\n"
+    )
+    updated = before.rstrip() + "\n" + block + text[close_index:]
+    temp = path.with_suffix(".tmp")
+    temp.write_text(updated, encoding="utf-8")
+    temp.replace(path)
+
+
+def remove_menu_extension() -> None:
+    path = menu_path()
+    if not path.exists():
+        return
+    text = path.read_text(encoding="utf-8")
+    pattern = re.compile(
+        r"\n?\s*" + re.escape(MENU_BEGIN) + r".*?" + re.escape(MENU_END) + r"\s*\n?",
+        re.S,
+    )
+    updated, count = pattern.subn("\n", text, count=1)
+    if count:
+        temp = path.with_suffix(".tmp")
+        temp.write_text(updated, encoding="utf-8")
+        temp.replace(path)
+
+
+def command_internal(args: argparse.Namespace) -> int:
+    if args.action == "install-menu":
+        install_menu_extension()
+    elif args.action == "remove-menu":
+        remove_menu_extension()
+    else:
+        raise RuntimeError("unknown internal action")
+    return 0
+
+
+def command_lifecycle(args: argparse.Namespace) -> int:
+    script = app_root() / "scripts" / ("update.sh" if args.action == "update" else "uninstall.sh")
+    if not script.is_file():
+        raise RuntimeError(f"lifecycle script is missing: {script}")
+    return subprocess.run([str(script), *args.extra]).returncode
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(prog="limechain-web3", description=__doc__)
+    sub = parser.add_subparsers(dest="command", required=True)
+
+    status = sub.add_parser("status", help="read chain and local RPC health")
+    status.add_argument("--json", action="store_true")
+    status.set_defaults(func=command_status)
+
+    doctor = sub.add_parser("doctor", help="verify the installation and security boundary")
+    doctor.add_argument("--json", action="store_true")
+    doctor.set_defaults(func=command_doctor)
+
+    configure = sub.add_parser("configure", help="configure a credential-free read-only RPC")
+    configure.add_argument("--name", default="Ethereum")
+    configure.add_argument("--chain-id", type=int)
+    configure.add_argument("--rpc-url")
+    configure.add_argument("--explorer-url", default="")
+    configure.add_argument("--clear", action="store_true")
+    configure.set_defaults(func=command_configure)
+
+    anvil = sub.add_parser("anvil", help="control the fixed local Anvil user service")
+    anvil.add_argument("action", choices=("start", "stop", "restart", "reset", "status"))
+    anvil.set_defaults(func=command_anvil)
+
+    fork = sub.add_parser("fork", help="run a foreground, account-free fork from a public RPC URL")
+    fork.add_argument("--rpc-url", required=True)
+    fork.add_argument("--port", type=int, default=8545, choices=range(1024, 65536), metavar="PORT")
+    fork.add_argument("--chain-id", type=int, default=31337)
+    fork.set_defaults(func=command_fork)
+
+    scaffold = sub.add_parser("scaffold", help="copy the bundled dependency-free Foundry sample")
+    scaffold.add_argument("directory")
+    scaffold.set_defaults(func=command_scaffold)
+
+    execute = sub.add_parser("exec", help="run a verified tool through the non-custodial guard")
+    execute.add_argument("tool", choices=("forge", "cast", "node", "npm", "npx", "bun", "bunx", "solc", "solc-select", "crytic-compile", "slither", "echidna", "anvil"))
+    execute.add_argument("tool_args", nargs=argparse.REMAINDER)
+    execute.set_defaults(func=command_exec)
+
+    shell = sub.add_parser("shell", help="enter a shell with verified tool wrappers first in PATH")
+    shell.set_defaults(func=command_shell)
+
+    explorer = sub.add_parser("open-explorer", help="open a validated explorer deep link")
+    explorer.add_argument("kind", nargs="?", choices=("block", "tx", "address"))
+    explorer.add_argument("value", nargs="?")
+    explorer.set_defaults(func=command_open_explorer)
+
+    for action in ("update", "uninstall"):
+        lifecycle = sub.add_parser(action, help=f"{action} the workstation")
+        lifecycle.add_argument("extra", nargs=argparse.REMAINDER)
+        lifecycle.set_defaults(func=command_lifecycle, action=action)
+
+    internal = sub.add_parser("internal", help=argparse.SUPPRESS)
+    internal.add_argument("action", choices=("install-menu", "remove-menu"))
+    internal.set_defaults(func=command_internal)
+    return parser
+
+
+def main() -> int:
+    parser = build_parser()
+    args = parser.parse_args()
+    if args.command == "configure" and not args.clear:
+        if not args.rpc_url or args.chain_id is None:
+            parser.error("configure requires --rpc-url and --chain-id unless --clear is used")
+    try:
+        return int(args.func(args))
+    except RuntimeError as exc:
+        print(f"limechain-web3: {exc}", file=sys.stderr)
+        return 2
+    except subprocess.TimeoutExpired:
+        print("limechain-web3: command timed out", file=sys.stderr)
+        return 2
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

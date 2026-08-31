@@ -1,0 +1,16 @@
+{
+  "schema": 1,
+  "chain": {
+    "name": "Unconfigured",
+    "chain_id": null,
+    "rpc_url": "",
+    "explorer_url": ""
+  },
+  "local": {
+    "rpc_url": "http://127.0.0.1:8545",
+    "chain_id": 31337
+  },
+  "telemetry": {
+    "timeout_seconds": 3
+  }
+}

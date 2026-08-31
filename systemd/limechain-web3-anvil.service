@@ -1,0 +1,43 @@
+[Unit]
+Description=LimeChain local account-free Anvil RPC
+Documentation=https://github.com/limechain/omarchy-web3
+After=network.target
+
+[Service]
+Type=simple
+ExecStart="@APP_ROOT@/raw-bin/anvil" --host 127.0.0.1 --port 8545 --chain-id 31337 --accounts 0 --silent
+Restart=on-failure
+RestartSec=2
+NoNewPrivileges=true
+KeyringMode=private
+CapabilityBoundingSet=
+AmbientCapabilities=
+PrivateTmp=true
+PrivateDevices=true
+PrivateUsers=true
+ProtectClock=true
+ProtectControlGroups=true
+ProtectHostname=true
+ProtectKernelLogs=true
+ProtectKernelModules=true
+ProtectKernelTunables=true
+ProtectSystem=strict
+ProtectHome=tmpfs
+BindReadOnlyPaths=@APP_ROOT@
+ProtectProc=invisible
+ProcSubset=pid
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+RestrictNamespaces=true
+RestrictSUIDSGID=true
+LockPersonality=true
+MemoryDenyWriteExecute=true
+RestrictRealtime=true
+SystemCallFilter=@system-service
+SystemCallErrorNumber=EPERM
+SystemCallArchitectures=native
+IPAddressDeny=any
+IPAddressAllow=localhost
+UMask=0077
+
+[Install]
+WantedBy=default.target
