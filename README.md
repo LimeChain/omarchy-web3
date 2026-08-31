@@ -131,7 +131,28 @@ Normal uninstall preserves credential-free configuration and the verified downlo
 
 ## Roadmap
 
-The `evm-core` profile is ready. Solana, Bitcoin, and Hedera are next on the roadmap, following the same standard for reproducible installation, safe updates, clean uninstallation, security, and clean-ISO validation.
+<div align="center">
+
+### EVM today. Multi-chain tomorrow.
+
+<img src="https://img.shields.io/badge/EVM%20CORE-READY-22c55e?style=for-the-badge&amp;logo=ethereum&amp;logoColor=white" alt="EVM Core — Ready">
+
+<br><br>
+
+**NEXT PROFILES**
+
+<br>
+
+<img src="https://img.shields.io/badge/SOLANA-NEXT-7c3aed?style=for-the-badge&amp;logo=solana&amp;logoColor=white" alt="Solana — Next">
+<img src="https://img.shields.io/badge/BITCOIN-NEXT-f59e0b?style=for-the-badge&amp;logo=bitcoin&amp;logoColor=white" alt="Bitcoin — Next">
+<img src="https://img.shields.io/badge/HEDERA-NEXT-111827?style=for-the-badge&amp;logo=hedera&amp;logoColor=white" alt="Hedera — Next">
+
+<br><br>
+
+<sub>ONE LIMECHAIN-READY STANDARD</sub><br>
+<sub>Reproducible install · Safe updates · Clean uninstall · Hardened security · Clean-ISO validation</sub>
+
+</div>
 
 ## License
 
