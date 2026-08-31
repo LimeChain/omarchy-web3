@@ -1,69 +1,123 @@
-# LimeChain Web3 Workstation for Omarchy
+<div align="center">
 
-An open-source, additive, reproducible EVM development and chain-inspection environment for Omarchy Quattro. It is deliberately not a wallet, signing surface, trading tool, or price ticker.
+# ⛓ LimeChain Web3 Workstation
 
-## MVP status
+### Chain engineering for Omarchy Quattro
 
-The `evm-core` implementation is under active development. Bitcoin and Solana profiles are explicitly outside the ten-day MVP.
+**Build, test, fuzz, run, and inspect EVM chains from one reproducible workstation.**<br>
+Not another price ticker. Not a wallet. Not a signing surface.
+
+[![CI](https://github.com/LimeChain/omarchy-web3/actions/workflows/ci.yml/badge.svg)](https://github.com/LimeChain/omarchy-web3/actions/workflows/ci.yml)
+![Omarchy](https://img.shields.io/badge/Omarchy-Quattro%204.x-d97706)
+![Profile](https://img.shields.io/badge/profile-evm--core-f59e0b)
+![Keys](https://img.shields.io/badge/keys-none-22c55e)
+[![License](https://img.shields.io/badge/license-MIT-f97316)](LICENSE)
+
+<br>
+
+<img src="docs/assets/quattro-panel-active.png" alt="LimeChain Web3 Workstation panel running local Anvil in Omarchy Quattro" width="420">
+
+<sub>Native Quattro panel · local Anvil healthy · chain 31337 · zero bundled accounts</sub>
+
+</div>
+
+## A workstation, not a widget
+
+| Build | Break | Run | Inspect |
+|:--|:--|:--|:--|
+| Foundry, Solidity, Node.js, Bun | Slither, Echidna, Forge fuzzing | Account-free Anvil on loopback | Blocks, gas, fees, RPC health, explorer links |
+
+Everything is additive and user-scoped. Tool versions and checksums are pinned, the sample contract runs locally, and the Quattro plugin delegates to a deliberately narrow CLI surface.
+
+> [!IMPORTANT]
+> The workstation never handles seed phrases, private keys, signing, transaction submission, exchange automation, or automatic mainnet deployment.
 
 ## Install
 
-Review the repository, then install it through Quattro's native plugin flow and run the pinned workstation installer:
+Review the repository, then install it through Quattro's native plugin flow:
 
 ```bash
-omarchy plugin add https://github.com/limechain/omarchy-web3.git --enable --yes && ~/.config/omarchy/plugins/limechain.web3/install --profile evm-core
+omarchy plugin add https://github.com/LimeChain/omarchy-web3.git --enable --yes && ~/.config/omarchy/plugins/limechain.web3/install --profile evm-core
 ```
 
-This is a single shell line without an unpinned `curl | bash`. The installer is user-scoped, invokes neither `sudo` nor `yay`, and can be run repeatedly.
+One command. No fork. No unpinned `curl | bash`. No `sudo`. No blind `yay` bundle.
 
-After installation:
+## Your first five minutes
 
 ```bash
+# Verify the complete workstation
 limechain-web3 doctor
+
+# Create and test a local project
 limechain-web3 scaffold ~/Code/limechain-counter
 cd ~/Code/limechain-counter
 limechain-web3 exec forge build
 limechain-web3 exec forge test
 ```
 
-## How the panel works
+<a href="docs/assets/quattro-forge-test.png">
+  <img src="docs/assets/quattro-forge-test.png" alt="Forge unit and fuzz tests passing inside Omarchy Quattro" width="100%">
+</a>
 
-The panel has two independent parts:
+<p align="center"><sub>Real host validation · unit and fuzz tests passing inside the pinned environment</sub></p>
 
-- **Local Anvil** is an account-free development chain on `http://127.0.0.1:8545` with chain ID `31337`. It works without internet access or a remote RPC. When stopped, the panel shows only **Start local Anvil**; while running, it shows only **Stop** and **Reset**.
-- **Remote observer** is optional, read-only telemetry for a public chain or testnet. It is deliberately unconfigured by default so installation never chooses or contacts a third-party RPC service on the user's behalf.
+Use `limechain-web3 exec …` for individual commands or enter the complete environment with:
 
-Starting Anvil does not configure the remote observer. A fresh local chain starts at block 0; **Reset** returns it to a clean block-0 state. The panel never provides accounts, signing, or transaction submission.
+```bash
+limechain-web3 shell
+```
 
-Configure optional remote telemetry only with a credential-free public RPC URL:
+The installer does not replace an existing global Foundry, Node.js, Bun, Python, or Solidity setup.
+
+## One panel, two independent modes
+
+| | Local Anvil | Remote observer |
+|:--|:--|:--|
+| Purpose | Local development RPC | Read-only public chain/testnet telemetry |
+| Default | Available immediately | Unconfigured by design |
+| Network | `http://127.0.0.1:8545` | User-selected HTTPS endpoint |
+| Chain | `31337` | Must match the configured chain ID |
+| Actions | Start, Stop, Reset | Block, gas, fee, health, explorer |
+| Credentials | None | Credential-free URLs only |
+
+A fresh local chain starts at block 0. **Reset** returns it to a clean block-0 state. Starting Anvil does not configure or contact a remote service.
+
+To add optional Sepolia telemetry:
 
 ```bash
 limechain-web3 configure \
   --name Sepolia \
   --chain-id 11155111 \
-  --rpc-url https://your-public-endpoint.example \
+  --rpc-url https://YOUR-CREDENTIAL-FREE-PUBLIC-RPC \
   --explorer-url https://sepolia.etherscan.io
 ```
 
-URLs containing usernames, passwords, query parameters, or fragments are rejected.
+URLs containing usernames, passwords, query parameters, or fragments are rejected. The panel's **Show remote setup guide** action opens the same safe instructions in a normal terminal.
 
-## What is installed
+## What ships
 
-- Verified Foundry (`forge`, `cast`, `anvil`, `chisel`), Node.js LTS, Bun, Solidity, Slither, Echidna, `solc-select`, and `uv` artifacts.
-- A Quattro bar widget showing read-only block, fee, and RPC-health data.
-- Fixed `systemd --user` controls for a loopback-only, silent Anvil service with zero accounts.
-- An Omarchy menu section and a cross-agent skill under `~/.agents/skills/limechain-web3`.
-- A dependency-free sample contract with unit, fuzz, Slither, and Echidna smoke-test paths.
+- **Verified EVM core:** `forge`, `cast`, `anvil`, `chisel`, Solidity, `solc-select`, Node.js LTS, Bun, Slither, Echidna, and `uv`.
+- **Native Omarchy integration:** Quattro bar widget, plugin panel, Omarchy menu entries, and a cross-agent skill at `~/.agents/skills/limechain-web3`.
+- **Managed local chain:** a loopback-only, silent `systemd --user` Anvil service with zero accounts.
+- **Ready-to-run sample:** dependency-free Solidity unit tests, fuzz tests, Slither analysis, and an Echidna property.
+- **Supply-chain evidence:** version lockfiles, SHA-256 verification, SPDX SBOM, release checksums, and GitHub provenance.
 
-The verified tools live under `~/.local/share/limechain-web3`; the installer does not replace an existing global Node, Bun, Foundry, Python, or Solidity setup. Use `limechain-web3 exec …` or `limechain-web3 shell`.
+## Security is the feature
 
-## Non-custodial boundary
+```text
+Quattro panel ──fixed commands──▶ limechain-web3 CLI ──allowlist──▶ local tools / read-only RPC
+      ✕ keys       ✕ signing          ✕ broadcast          ✕ mainnet deploy
+```
 
-The project does not implement wallet discovery, credential storage, key generation, seed handling, signing, transaction submission, exchange automation, or mainnet deployment. Guarded wrappers reject signing/broadcast commands and credential flags. Quickshell plugins remain unsandboxed user code, so the small plugin delegates all work to a fixed CLI surface.
+Guarded wrappers reject signing, broadcast, credential-bearing RPC URLs, and deployment commands. Quickshell plugins remain unsandboxed user code, so the plugin stays small and all behavior crosses a fixed CLI boundary.
 
-See [SECURITY.md](docs/SECURITY.md), [THREAT_MODEL.md](docs/THREAT_MODEL.md), and [REPRODUCIBILITY.md](docs/REPRODUCIBILITY.md).
+Read the threat model before extending that boundary:
 
-The latest real-host results and the corrected Quattro lockscreen reload race are documented in [VALIDATION_REPORT.md](docs/VALIDATION_REPORT.md).
+- [Security policy](docs/SECURITY.md)
+- [Threat model](docs/THREAT_MODEL.md)
+- [Reproducibility](docs/REPRODUCIBILITY.md)
+- [Wallet compatibility](docs/WALLET_COMPATIBILITY.md)
+- [Live Quattro validation](docs/VALIDATION_REPORT.md)
 
 ## Lifecycle
 
@@ -73,8 +127,12 @@ limechain-web3 uninstall
 limechain-web3 uninstall --purge
 ```
 
-Normal uninstall preserves the credential-free configuration and verified download cache. `--purge` removes them as well. See [ROLLBACK.md](docs/ROLLBACK.md).
+Normal uninstall preserves credential-free configuration and the verified download cache. `--purge` removes both. Rollback behavior is documented in [ROLLBACK.md](docs/ROLLBACK.md).
+
+## MVP scope
+
+`evm-core` is the ten-day MVP. Bitcoin and Solana profiles are intentionally deferred until the EVM install, update, uninstall, security, and clean-ISO validation paths are release-grade.
 
 ## License
 
-MIT. Third-party tools retain their upstream licenses; the SBOM records them as separate packages.
+MIT. Third-party tools retain their upstream licenses and are recorded as separate packages in the SPDX SBOM.
