@@ -26,6 +26,15 @@ limechain-web3 exec forge build
 limechain-web3 exec forge test
 ```
 
+## How the panel works
+
+The panel has two independent parts:
+
+- **Local Anvil** is an account-free development chain on `http://127.0.0.1:8545` with chain ID `31337`. It works without internet access or a remote RPC. When stopped, the panel shows only **Start local Anvil**; while running, it shows only **Stop** and **Reset**.
+- **Remote observer** is optional, read-only telemetry for a public chain or testnet. It is deliberately unconfigured by default so installation never chooses or contacts a third-party RPC service on the user's behalf.
+
+Starting Anvil does not configure the remote observer. A fresh local chain starts at block 0; **Reset** returns it to a clean block-0 state. The panel never provides accounts, signing, or transaction submission.
+
 Configure optional remote telemetry only with a credential-free public RPC URL:
 
 ```bash

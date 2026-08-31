@@ -267,10 +267,15 @@ chmod 0644 "$unit_target"
 if (( ! SKIP_OMARCHY )); then
   omarchy plugin validate "$LCW3_PLUGIN_ROOT"
   if (( plugin_changed )); then
+    command -v omarchy-shell >/dev/null || lcw3_fail "omarchy-shell is not available"
     omarchy-shell shell rescanPlugins >/dev/null
   fi
   if (( ENABLE_PLUGIN )) && ! omarchy plugin list --json | jq -e 'any(.[]; .id == "limechain.web3" and .enabled == true)' >/dev/null; then
     omarchy plugin enable limechain.web3 --section right
+  fi
+  if (( plugin_changed )); then
+    command -v omarchy-restart-shell >/dev/null || lcw3_fail "omarchy-restart-shell is not available"
+    omarchy-restart-shell
   fi
   systemctl --user daemon-reload
 fi

@@ -17,6 +17,7 @@ Panel {
   })
   property string lastError: ""
   property bool refreshing: false
+  property string anvilAction: ""
   readonly property string cli: Quickshell.env("HOME") + "/.local/bin/limechain-web3"
   readonly property int refreshSeconds: Math.max(5, parseInt(setting("refreshIntervalSec", 15), 10) || 15)
   readonly property color foreground: bar ? bar.foreground : Color.foreground
@@ -24,6 +25,7 @@ Panel {
   readonly property color urgent: bar ? bar.urgent : Color.urgent
   readonly property string fontFamily: bar ? bar.fontFamily : Style.font.family
   readonly property bool chainHealthy: report.chain && report.chain.ok === true
+  readonly property bool chainConfigured: report.chain && report.chain.configured === true
   readonly property bool localHealthy: report.local && report.local.ok === true
   readonly property bool anvilActive: report.local && report.local.service_active === true
   readonly property string barText: {
@@ -55,9 +57,30 @@ Panel {
   }
 
   function runAnvil(action) {
-    if (actionProc.running) return
+    if (actionProc.running || anvilAction !== "") return
+    anvilAction = action
+    lastError = ""
     actionProc.command = [root.cli, "anvil", action]
     actionProc.running = true
+    actionTimeout.restart()
+  }
+
+  function completeAnvilAction() {
+    anvilAction = ""
+    actionTimeout.stop()
+  }
+
+  function localServiceLabel() {
+    if (anvilAction === "start") return "starting…"
+    if (anvilAction === "stop") return "stopping…"
+    if (anvilAction === "reset") return "resetting…"
+    return anvilActive ? "active" : "stopped"
+  }
+
+  function openRemoteGuide() {
+    if (guideProc.running) return
+    guideProc.command = ["omarchy-launch-floating-terminal-with-presentation", root.cli + " remote-guide --wait"]
+    guideProc.running = true
   }
 
   function openLatestBlock() {
@@ -92,7 +115,12 @@ Panel {
         if (!raw) return
         try {
           var parsed = JSON.parse(raw)
-          if (parsed && parsed.chain && parsed.local) root.report = parsed
+          if (parsed && parsed.chain && parsed.local) {
+            root.report = parsed
+            if ((root.anvilAction === "start" && parsed.local.service_active === true)
+                || (root.anvilAction === "stop" && parsed.local.service_active === false))
+              root.completeAnvilAction()
+          }
           root.lastError = ""
         } catch (error) {
           root.lastError = "Invalid workstation status"
@@ -122,12 +150,37 @@ Panel {
       }
     }
     onExited: function(exitCode) {
-      if (exitCode !== 0 && root.lastError === "") root.lastError = "Anvil action failed"
+      if (exitCode !== 0) {
+        if (root.lastError === "") root.lastError = "Anvil action failed"
+        root.completeAnvilAction()
+      } else if (root.anvilAction === "reset") {
+        root.completeAnvilAction()
+      }
       Qt.callLater(root.refresh)
     }
   }
 
   Process { id: explorerProc }
+  Process { id: guideProc }
+
+  Timer {
+    id: actionPoll
+    interval: 300
+    running: root.anvilAction !== ""
+    repeat: true
+    onTriggered: root.refresh()
+  }
+
+  Timer {
+    id: actionTimeout
+    interval: 8000
+    repeat: false
+    onTriggered: {
+      root.lastError = "Anvil did not reach the expected state"
+      root.completeAnvilAction()
+      root.refresh()
+    }
+  }
 
   Timer {
     interval: root.refreshSeconds * 1000
@@ -143,7 +196,8 @@ Panel {
     bar: root.bar
     text: root.barText
     slotSize: root.chainHealthy ? Style.bar.statusSlot : Style.bar.iconSlot
-    tooltipText: root.chainHealthy ? root.report.chain.name + " read-only status" : "Web3 Workstation"
+    tooltipText: root.localHealthy ? "Local Anvil · block " + root.display(root.report.local.block_height, "")
+      : root.chainHealthy ? root.report.chain.name + " read-only status" : "Web3 Workstation · stopped"
     active: root.localHealthy
     onPressed: function(code) {
       if (code === Qt.RightButton) root.refresh()
@@ -177,8 +231,10 @@ Panel {
 
         PanelHero {
           width: parent.width
-          title: report.chain ? report.chain.name : "Web3 Workstation"
-          meta: root.chainHealthy ? "Read-only chain telemetry" : "Remote RPC not configured"
+          title: root.localHealthy ? "Local Anvil"
+            : root.chainHealthy ? root.report.chain.name : "Web3 Workstation"
+          meta: root.localHealthy ? "Local development RPC ready · chain 31337"
+            : root.chainHealthy ? "Read-only remote observer" : "Start a local chain when you need it"
           foreground: root.foreground
           fontFamily: root.fontFamily
           iconComponent: Component {
@@ -204,15 +260,37 @@ Panel {
         }
 
         PanelSectionHeader {
-          text: "REMOTE CHAIN"
+          text: "REMOTE OBSERVER (OPTIONAL)"
           foreground: root.foreground
           fontFamily: root.fontFamily
         }
 
-        InfoPair { label: "Status"; value: root.chainHealthy ? "healthy" : "unavailable" }
-        InfoPair { label: "Block"; value: root.display(report.chain ? report.chain.block_height : null, "") }
-        InfoPair { label: "Gas"; value: root.display(report.chain ? report.chain.gas_gwei : null, " gwei") }
-        InfoPair { label: "Base fee"; value: root.display(report.chain ? report.chain.base_fee_gwei : null, " gwei") }
+        Text {
+          visible: !root.chainConfigured
+          width: parent.width
+          text: "Not connected by default. Local Anvil works independently, and no external service is contacted."
+          textFormat: Text.PlainText
+          color: root.dim
+          font.family: root.fontFamily
+          font.pixelSize: Style.font.bodySmall
+          wrapMode: Text.WordWrap
+        }
+
+        Button {
+          visible: !root.chainConfigured
+          text: "Show remote setup guide"
+          iconText: "󰒓"
+          foreground: root.foreground
+          fontFamily: root.fontFamily
+          bordered: true
+          onClicked: root.openRemoteGuide()
+        }
+
+        InfoPair { visible: root.chainConfigured; label: "Status"; value: root.chainHealthy ? "healthy" : "offline" }
+        InfoPair { visible: root.chainConfigured; label: "Chain ID"; value: root.display(report.chain ? report.chain.chain_id : null, "") }
+        InfoPair { visible: root.chainConfigured; label: "Block"; value: root.display(report.chain ? report.chain.block_height : null, "") }
+        InfoPair { visible: root.chainConfigured; label: "Gas"; value: root.display(report.chain ? report.chain.gas_gwei : null, " gwei") }
+        InfoPair { visible: root.chainConfigured; label: "Base fee"; value: root.display(report.chain ? report.chain.base_fee_gwei : null, " gwei") }
 
         Button {
           visible: root.chainHealthy && report.chain && report.chain.explorer_url !== ""
@@ -232,49 +310,71 @@ Panel {
           fontFamily: root.fontFamily
         }
 
-        InfoPair { label: "Service"; value: root.anvilActive ? "active" : "inactive" }
-        InfoPair { label: "RPC"; value: root.localHealthy ? "healthy" : "offline" }
+        InfoPair { label: "Service"; value: root.localServiceLabel() }
+        InfoPair { label: "RPC"; value: root.anvilAction !== "" ? "checking…" : root.localHealthy ? "healthy" : "offline" }
+        InfoPair { label: "Chain ID"; value: root.display(report.local ? report.local.chain_id : null, "") }
         InfoPair { label: "Block"; value: root.display(report.local ? report.local.block_height : null, "") }
+        InfoPair { label: "Gas"; value: root.display(report.local ? report.local.gas_gwei : null, " gwei") }
 
         RowLayout {
           width: parent.width
           spacing: Style.space(8)
 
           Button {
-            text: "Start"
+            visible: !root.anvilActive && root.anvilAction === ""
+            text: "Start local Anvil"
             iconText: "󰐊"
             foreground: root.foreground
             fontFamily: root.fontFamily
-            enabled: !root.anvilActive && !actionProc.running
             bordered: true
             Layout.fillWidth: true
             onClicked: root.runAnvil("start")
           }
           Button {
+            visible: root.anvilAction === "start"
+            text: "Starting…"
+            iconText: "󰑐"
+            iconSpinning: true
+            foreground: root.dim
+            fontFamily: root.fontFamily
+            bordered: true
+            Layout.fillWidth: true
+          }
+          Button {
+            visible: root.anvilActive && root.anvilAction === ""
             text: "Stop"
             iconText: "󰓛"
             foreground: root.foreground
             fontFamily: root.fontFamily
-            enabled: root.anvilActive && !actionProc.running
             bordered: true
             Layout.fillWidth: true
             onClicked: root.runAnvil("stop")
           }
           Button {
+            visible: root.anvilActive && root.anvilAction === ""
             text: "Reset"
             iconText: "󰑐"
             foreground: root.foreground
             fontFamily: root.fontFamily
-            enabled: root.anvilActive && !actionProc.running
             bordered: true
             Layout.fillWidth: true
             onClicked: root.runAnvil("reset")
+          }
+          Button {
+            visible: root.anvilAction === "stop" || root.anvilAction === "reset"
+            text: root.anvilAction === "stop" ? "Stopping…" : "Resetting…"
+            iconText: "󰑐"
+            iconSpinning: true
+            foreground: root.dim
+            fontFamily: root.fontFamily
+            bordered: true
+            Layout.fillWidth: true
           }
         }
 
         Text {
           width: parent.width
-          text: "No accounts, signing, keys, or transaction submission. Right-click the bar widget to refresh."
+          text: "Account-free local RPC. No signing, keys, or transaction submission. Right-click the bar widget to refresh."
           textFormat: Text.PlainText
           color: root.dim
           font.family: root.fontFamily

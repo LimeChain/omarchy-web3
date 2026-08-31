@@ -130,6 +130,7 @@ class CliTests(unittest.TestCase):
         report = json.loads(result.stdout)
         self.assertTrue(report["local"]["ok"])
         self.assertEqual(report["local"]["chain_id"], 31337)
+        self.assertFalse(report["chain"]["configured"])
         self.assertEqual(report["local"]["block_height"], 42)
         self.assertEqual(report["local"]["gas_gwei"], 1.0)
         self.assertFalse(report["chain"]["ok"])

@@ -24,6 +24,9 @@ class MetadataTests(unittest.TestCase):
         self.assertNotRegex(qml, r"command:\s*\[\s*\"(curl|wget|cast|forge|anvil)\"")
         self.assertIn('[root.cli, "status", "--json"]', qml)
         self.assertIn('[root.cli, "anvil", action]', qml)
+        self.assertIn('visible: !root.anvilActive && root.anvilAction === ""', qml)
+        self.assertIn('text: "REMOTE OBSERVER (OPTIONAL)"', qml)
+        self.assertNotRegex(qml, r'enabled:\s*[!]?root\.anvilActive')
         self.assertNotIn("private", qml.lower())
 
     def test_no_aur_or_unpinned_curl_pipe(self) -> None:
@@ -31,6 +34,15 @@ class MetadataTests(unittest.TestCase):
         self.assertNotRegex(installer, re.compile(r"(?m)^\s*yay\s"))
         self.assertNotRegex(installer, re.compile(r"curl[^\n|]*\|\s*(ba)?sh"))
         self.assertNotRegex(installer, re.compile(r"(?m)^\s*sudo\s"))
+
+    def test_changed_plugin_uses_safe_shell_restart(self) -> None:
+        installer = (ROOT / "scripts" / "install.sh").read_text(encoding="utf-8")
+        self.assertIn("lcw3_require_unlocked_session", installer)
+        self.assertIn("omarchy-restart-shell", installer)
+        self.assertRegex(
+            installer,
+            re.compile(r"if \(\( plugin_changed \)\); then\n(?:.*\n){0,2}\s+omarchy-restart-shell\n"),
+        )
 
 
 if __name__ == "__main__":

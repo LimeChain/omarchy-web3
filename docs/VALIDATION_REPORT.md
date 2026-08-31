@@ -35,8 +35,15 @@ The corrected installer now:
 1. Compares plugin content and performs no write or rescan when it is unchanged.
 2. Refuses a genuine plugin reload when the Omarchy session is locked or its lock state cannot be determined.
 3. Replaces a changed managed plugin atomically when the session is confirmed unlocked.
+4. Uses Omarchy's official shell restart after a genuine plugin change so Quattro does not retain a panel instance attached to the replaced directory.
 
 Regression tests cover the locked-session refusal and unchanged-plugin inode preservation. On the live workstation, two corrected installer runs produced zero `limechain.web3` reload events.
+
+## Panel UX correction
+
+Live testing exposed that Quattro's shared `Button` component does not visually or behaviorally honor QML's standard `enabled` property. The first panel therefore left Start, Stop, and Reset looking actionable at the same time, even when Anvil was already active.
+
+The corrected panel uses mutually exclusive visibility and explicit pending states: stopped shows only **Start local Anvil**; starting shows **Starting...**; active shows only **Stop** and **Reset**. It also separates the account-free local Anvil RPC from the optional remote observer, explains why no remote endpoint is configured by default, and provides a terminal-based setup guide. The live 3840x2160 panel was revalidated with Anvil active: service healthy, RPC healthy, chain ID `31337`, block `0`, and only Stop/Reset visible.
 
 ## Remaining release validation
 

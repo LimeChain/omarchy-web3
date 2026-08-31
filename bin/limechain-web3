@@ -279,6 +279,7 @@ def command_status(args: argparse.Namespace) -> int:
     report = {
         "schema": 1,
         "chain": {
+            "configured": bool(remote_url),
             "name": str(chain.get("name", "Unconfigured")),
             "expected_chain_id": chain.get("chain_id"),
             "explorer_url": str(chain.get("explorer_url", "")),
@@ -302,6 +303,25 @@ def command_status(args: argparse.Namespace) -> int:
             )
         else:
             print(f"{chain_report['name']}: {chain_report['error']}; local RPC {local_status}")
+    return 0
+
+
+def command_remote_guide(args: argparse.Namespace) -> int:
+    print("Remote observer setup (optional)")
+    print("================================")
+    print("The local Anvil controls do not need a remote RPC.")
+    print("A remote RPC adds read-only block, gas, fee, and explorer status.")
+    print("Use a public endpoint with no credentials, query string, or URL fragment:")
+    print()
+    print("limechain-web3 configure \\")
+    print("  --name Sepolia \\")
+    print("  --chain-id 11155111 \\")
+    print("  --rpc-url https://YOUR-CREDENTIAL-FREE-PUBLIC-RPC \\")
+    print("  --explorer-url https://sepolia.etherscan.io")
+    print()
+    print("Remove remote configuration with: limechain-web3 configure --clear")
+    if args.wait and sys.stdin.isatty():
+        input("Press Enter to close...")
     return 0
 
 
@@ -675,6 +695,10 @@ def build_parser() -> argparse.ArgumentParser:
     configure.add_argument("--explorer-url", default="")
     configure.add_argument("--clear", action="store_true")
     configure.set_defaults(func=command_configure)
+
+    remote_guide = sub.add_parser("remote-guide", help="explain optional read-only remote RPC setup")
+    remote_guide.add_argument("--wait", action="store_true")
+    remote_guide.set_defaults(func=command_remote_guide)
 
     anvil = sub.add_parser("anvil", help="control the fixed local Anvil user service")
     anvil.add_argument("action", choices=("start", "stop", "restart", "reset", "status"))
