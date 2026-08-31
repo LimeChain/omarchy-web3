@@ -93,9 +93,13 @@ if (( ! SKIP_OMARCHY )); then
   [[ $(uname -m) == "x86_64" ]] || lcw3_fail "the profile lockfiles currently support x86_64 only"
   command -v omarchy >/dev/null || lcw3_fail "Omarchy CLI is not available"
   command -v pacman >/dev/null || lcw3_fail "pacman is not available"
+  command -v systemctl >/dev/null || lcw3_fail "systemctl is not available"
   omarchy_package=$(pacman -Q omarchy 2>/dev/null || true)
   [[ $omarchy_package =~ [[:space:]]4\. ]] || lcw3_fail "Omarchy Quattro 4.x is required; found: ${omarchy_package:-none}"
   lcw3_export_omarchy_path
+  lcw3_capture_active_user_units \
+    limechain-web3-anvil.service \
+    limechain-web3-surfpool.service
 fi
 
 plugin_managed=false
@@ -320,6 +324,7 @@ if (( ! SKIP_OMARCHY )); then
     omarchy-restart-shell
   fi
   systemctl --user daemon-reload
+  lcw3_restore_active_user_units
 fi
 
 echo "LimeChain Web3 Workstation installed."

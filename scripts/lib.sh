@@ -78,6 +78,25 @@ lcw3_require_unlocked_session() {
   esac
 }
 
+LCW3_ACTIVE_USER_UNITS=()
+
+lcw3_capture_active_user_units() {
+  local unit
+  LCW3_ACTIVE_USER_UNITS=()
+  for unit in "$@"; do
+    if systemctl --user is-active --quiet "$unit" 2>/dev/null; then
+      LCW3_ACTIVE_USER_UNITS+=("$unit")
+    fi
+  done
+}
+
+lcw3_restore_active_user_units() {
+  local unit
+  for unit in "${LCW3_ACTIVE_USER_UNITS[@]}"; do
+    systemctl --user start "$unit"
+  done
+}
+
 lcw3_copy_tree() {
   local source=$1
   local target=$2

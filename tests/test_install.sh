@@ -35,6 +35,25 @@ grep -q 'refusing to reload the plugin while the Omarchy session is locked' <<<"
 LCW3_TEST_LOCK_STATUS=1 PATH="$fake_bin:$PATH" bash -c \
   'source "$1/scripts/lib.sh"; lcw3_require_unlocked_session' _ "$ROOT"
 
+systemctl_log="$TEST_ROOT/systemctl.log"
+cat >"$fake_bin/systemctl" <<'SYSTEMCTL'
+#!/bin/bash
+if [[ $1 == "--user" && $2 == "is-active" && $3 == "--quiet" ]]; then
+  [[ $4 == "limechain-web3-anvil.service" ]]
+elif [[ $1 == "--user" && $2 == "start" ]]; then
+  printf '%s\n' "$3" >>"$LCW3_TEST_SYSTEMCTL_LOG"
+else
+  exit 2
+fi
+SYSTEMCTL
+chmod 0755 "$fake_bin/systemctl"
+LCW3_TEST_SYSTEMCTL_LOG="$systemctl_log" PATH="$fake_bin:$PATH" bash -c '
+  source "$1/scripts/lib.sh"
+  lcw3_capture_active_user_units limechain-web3-anvil.service limechain-web3-surfpool.service
+  lcw3_restore_active_user_units
+' _ "$ROOT"
+[[ $(<"$systemctl_log") == "limechain-web3-anvil.service" ]]
+
 "$ROOT/install" --skip-toolchains --skip-omarchy
 plugin_inode=$(python3 -c 'import os,sys; print(os.stat(sys.argv[1]).st_ino)' "$LCW3_PLUGIN_ROOT")
 "$ROOT/install" --skip-toolchains --skip-omarchy
