@@ -43,7 +43,7 @@ omarchy plugin add https://github.com/LimeChain/omarchy-web3.git --enable --yes 
 
 One command. No fork. No unpinned `curl | bash`. No `sudo`. No blind `yay` bundle.
 
-Add the Solana preview profile with the same installer:
+Add the ready Solana profile with the same installer:
 
 ```bash
 ~/.config/omarchy/plugins/limechain.web3/install --profile solana-core
