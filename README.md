@@ -115,7 +115,7 @@ URLs containing usernames, passwords, query parameters, or fragments are rejecte
 
 <div align="center">
 
-### EVM today. Multi-chain tomorrow.
+### Multi-chain is here. More chains next.
 
 <img src="https://img.shields.io/badge/EVM%20CORE-READY-22c55e?style=for-the-badge&amp;logo=ethereum&amp;logoColor=white" alt="EVM Core — Ready">
 
