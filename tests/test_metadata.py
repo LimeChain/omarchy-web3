@@ -25,6 +25,8 @@ class MetadataTests(unittest.TestCase):
         self.assertIn('[root.cli, "status", "--json"]', qml)
         self.assertIn('[root.cli, "anvil", action]', qml)
         self.assertIn('[root.cli, "surfpool", action]', qml)
+        self.assertIn('label: "Solana CLI"', qml)
+        self.assertIn('label: "Anchor"', qml)
         self.assertIn('visible: !root.anvilActive && root.anvilAction === ""', qml)
         self.assertIn('visible: !root.surfpoolActive && root.surfpoolAction === ""', qml)
         self.assertIn('text: "REMOTE OBSERVER (OPTIONAL)"', qml)
@@ -41,6 +43,18 @@ class MetadataTests(unittest.TestCase):
         self.assertIn("ProtectHome=tmpfs", unit)
         self.assertIn("IPAddressDeny=any", unit)
         self.assertIn("IPAddressAllow=localhost", unit)
+
+    def test_solana_artifact_and_guard_contract(self) -> None:
+        lock = json.loads((ROOT / "toolchains" / "solana-core.lock.json").read_text(encoding="utf-8"))
+        artifacts = {item["id"]: item for item in lock["artifacts"]}
+        self.assertEqual(set(artifacts), {"surfpool", "agave", "anchor", "platform-tools"})
+        self.assertEqual(artifacts["agave"]["bins"]["solana"], "bin/solana")
+        self.assertEqual(artifacts["anchor"]["archive"], "raw")
+        self.assertEqual(artifacts["platform-tools"]["version"], "1.56")
+        cli = (ROOT / "bin" / "limechain-web3").read_text(encoding="utf-8")
+        self.assertIn('"--ignore-keys"', cli)
+        self.assertIn('"--skip-tools-install"', cli)
+        self.assertIn('provider.get("wallet") != "/dev/null"', cli)
 
     def test_no_aur_or_unpinned_curl_pipe(self) -> None:
         installer = (ROOT / "scripts" / "install.sh").read_text(encoding="utf-8")

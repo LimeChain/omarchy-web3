@@ -26,7 +26,7 @@ SHA256 = re.compile(r"^[0-9a-f]{64}$")
 TRUSTED_HOSTS = {"github.com", "nodejs.org"}
 EXPECTED_ARTIFACTS = {
     "evm-core": {"foundry", "node", "bun", "echidna", "uv", "solc"},
-    "solana-core": {"surfpool"},
+    "solana-core": {"surfpool", "agave", "anchor", "platform-tools"},
 }
 
 

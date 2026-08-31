@@ -10,7 +10,7 @@ Not another price ticker. Not a wallet. Not a signing surface.
 [![CI](https://github.com/LimeChain/omarchy-web3/actions/workflows/ci.yml/badge.svg)](https://github.com/LimeChain/omarchy-web3/actions/workflows/ci.yml)
 ![Omarchy](https://img.shields.io/badge/Omarchy-Quattro%204.x-d97706)
 ![Profile](https://img.shields.io/badge/profile-evm--core-f59e0b)
-![Solana](https://img.shields.io/badge/solana--core-Surfpool%20preview-7c3aed)
+![Solana](https://img.shields.io/badge/solana--core-CLI%20%2B%20Anchor%20%2B%20Surfpool-7c3aed)
 ![Keys](https://img.shields.io/badge/keys-none-22c55e)
 [![License](https://img.shields.io/badge/license-MIT-f97316)](LICENSE)
 
@@ -49,7 +49,7 @@ Add the Solana preview profile with the same installer:
 ~/.config/omarchy/plugins/limechain.web3/install --profile solana-core
 ```
 
-It installs the pinned Surfpool runtime and exposes only an offline, loopback-only local service. Solana CLI and Anchor are the next layer of this profile, after their artifact and key-handling boundaries are reviewed.
+It installs pinned Solana CLI, Anchor, SBF platform tools, and Surfpool artifacts. The public surface is deliberately smaller than the upstream tools: read-only CLI queries target local Surfpool, while Anchor can only scaffold and compile a keypair-free workspace.
 
 ## Your first five minutes
 
@@ -63,6 +63,17 @@ cd ~/Code/limechain-counter
 limechain-web3 exec forge build
 limechain-web3 exec forge test
 ```
+
+Try the guarded Solana developer path:
+
+```bash
+limechain-web3 surfpool start
+limechain-web3 solana slot
+limechain-web3 anchor scaffold ~/Code/limechain-anchor-counter
+limechain-web3 anchor build ~/Code/limechain-anchor-counter
+```
+
+The first Anchor build downloads only Cargo dependencies pinned by the sample's `Cargo.lock`. Re-run it with `--offline` to prove the cached build path.
 
 <a href="docs/assets/quattro-forge-test.png">
   <img src="docs/assets/quattro-forge-test.png" alt="Forge unit and fuzz tests passing inside Omarchy Quattro" width="100%">
@@ -107,7 +118,8 @@ URLs containing usernames, passwords, query parameters, or fragments are rejecte
 - **Verified EVM core:** `forge`, `cast`, `anvil`, `chisel`, Solidity, `solc-select`, Node.js LTS, Bun, Slither, Echidna, and `uv`.
 - **Native Omarchy integration:** Quattro bar widget, plugin panel, Omarchy menu entries, and a cross-agent skill at `~/.agents/skills/limechain-web3`.
 - **Managed local chain:** a loopback-only, silent `systemd --user` Anvil service with zero accounts.
-- **Solana preview:** pinned Surfpool with checksum verification and a hardened offline, loopback-only, in-memory service that bypasses the default keypair path.
+- **Verified Solana core:** Agave CLI `4.2.2`, Anchor `1.1.2`, SBF platform-tools `1.56`, and Surfpool `1.5.0`, all from versioned upstream release artifacts with locked SHA-256 digests.
+- **Narrow Solana workflow:** local read-only CLI queries and keypair-free Anchor scaffolding/compilation; wallet, keygen, config, airdrop, test/deploy, and transaction commands stay blocked.
 - **Ready-to-run sample:** dependency-free Solidity unit tests, fuzz tests, Slither analysis, and an Echidna property.
 - **Supply-chain evidence:** version lockfiles, SHA-256 verification, SPDX SBOM, release checksums, and GitHub provenance.
 
@@ -125,7 +137,7 @@ URLs containing usernames, passwords, query parameters, or fragments are rejecte
 
 <br>
 
-<img src="https://img.shields.io/badge/SOLANA-SURFPOOL%20PREVIEW-7c3aed?style=for-the-badge&amp;logo=solana&amp;logoColor=white" alt="Solana — Surfpool preview">
+<img src="https://img.shields.io/badge/SOLANA-CLI%20%2B%20ANCHOR%20%2B%20SURFPOOL-7c3aed?style=for-the-badge&amp;logo=solana&amp;logoColor=white" alt="Solana — CLI, Anchor and Surfpool ready">
 <img src="https://img.shields.io/badge/BITCOIN-NEXT-f59e0b?style=for-the-badge&amp;logo=bitcoin&amp;logoColor=white" alt="Bitcoin — Next">
 <img src="https://img.shields.io/badge/HEDERA-NEXT-111827?style=for-the-badge&amp;logo=hedera&amp;logoColor=white" alt="Hedera — Next">
 
@@ -150,6 +162,7 @@ Read the threat model before extending that boundary:
 - [Security policy](docs/SECURITY.md)
 - [Threat model](docs/THREAT_MODEL.md)
 - [Reproducibility](docs/REPRODUCIBILITY.md)
+- [Solana artifact and key-handling review](docs/SOLANA_SECURITY_REVIEW.md)
 - [Wallet compatibility](docs/WALLET_COMPATIBILITY.md)
 - [Live Quattro validation](docs/VALIDATION_REPORT.md)
 

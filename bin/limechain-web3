@@ -15,6 +15,7 @@ import stat
 import subprocess
 import sys
 import time
+import tomllib
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -112,6 +113,14 @@ def env_bin_dir() -> Path:
 
 def sample_root() -> Path:
     return app_root() / "samples" / "counter"
+
+
+def anchor_sample_root() -> Path:
+    return app_root() / "samples" / "anchor-counter"
+
+
+def solana_home() -> Path:
+    return app_root() / "solana-home"
 
 
 def systemd_unit_path() -> Path:
@@ -406,6 +415,8 @@ def command_status(args: argparse.Namespace) -> int:
             "rpc_url": solana_url,
             "mode": "offline",
             "surfpool_version": locked_artifact_version("surfpool") or None,
+            "cli_version": locked_artifact_version("agave") or None,
+            "anchor_version": locked_artifact_version("anchor") or None,
             **solana_report,
         },
     }
@@ -565,7 +576,7 @@ def command_doctor(args: argparse.Namespace) -> int:
     for tool, version in sorted(expected.items()):
         path = raw_bin_dir() / tool
         actual = _python_package_version("solc-select") if tool == "solc-select" and path.is_file() else _tool_version(path) if path.is_file() else ""
-        independently_versioned = tool in {"corepack", "npm", "npx"}
+        independently_versioned = tool in {"corepack", "npm", "npx", "cargo", "rustc", "cargo-build-sbf"}
         version_ok = bool(actual) and (independently_versioned or not version or version.lstrip("v") in actual)
         add(f"tool:{tool}", version_ok, actual or "missing")
 
@@ -670,6 +681,155 @@ def command_scaffold(args: argparse.Namespace) -> int:
     return 0
 
 
+def command_anchor_scaffold(args: argparse.Namespace) -> int:
+    source = anchor_sample_root()
+    target = Path(args.directory).expanduser().resolve()
+    if not source.is_dir():
+        raise RuntimeError(f"Anchor sample project is not installed: {source}")
+    if target.exists():
+        raise RuntimeError(f"refusing to overwrite existing path: {target}")
+    target.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copytree(source, target)
+    print(f"Created safe keypair-free Anchor sample at {target}")
+    return 0
+
+
+def isolated_solana_env(*, build: bool = False) -> dict[str, str]:
+    home = solana_home()
+    cargo_home = home / ".cargo"
+    home.mkdir(parents=True, exist_ok=True, mode=0o700)
+    cargo_home.mkdir(parents=True, exist_ok=True, mode=0o700)
+    os.chmod(home, 0o700)
+    os.chmod(cargo_home, 0o700)
+
+    env = {key: value for key, value in os.environ.items() if key in {"LANG", "LC_ALL", "TERM", "TMPDIR"}}
+    env.update(
+        {
+            "HOME": str(home),
+            "CARGO_HOME": str(cargo_home),
+            "XDG_CACHE_HOME": str(home / ".cache"),
+            "XDG_CONFIG_HOME": str(home / ".config"),
+            "XDG_DATA_HOME": str(home / ".local" / "share"),
+            "XDG_STATE_HOME": str(home / ".local" / "state"),
+        }
+    )
+    for key in ("XDG_CACHE_HOME", "XDG_CONFIG_HOME", "XDG_DATA_HOME", "XDG_STATE_HOME"):
+        Path(env[key]).mkdir(parents=True, exist_ok=True, mode=0o700)
+
+    if build:
+        safe_bin = home / "build-bin"
+        safe_bin.mkdir(parents=True, exist_ok=True, mode=0o700)
+        for command in ("cargo", "rustc", "cargo-build-sbf"):
+            source = raw_bin_dir() / command
+            if not source.is_file():
+                raise RuntimeError(f"verified Solana build tool is missing: {source}")
+            target = safe_bin / command
+            if target.is_symlink() or target.exists():
+                target.unlink()
+            target.symlink_to(source)
+        env["PATH"] = os.pathsep.join([str(safe_bin), "/usr/local/bin", "/usr/bin", "/bin"])
+        env["CARGO_NET_GIT_FETCH_WITH_CLI"] = "false"
+    else:
+        env["PATH"] = os.pathsep.join(["/usr/local/bin", "/usr/bin", "/bin"])
+    return env
+
+
+def command_solana(args: argparse.Namespace) -> int:
+    solana = raw_bin_dir() / "solana"
+    if not solana.is_file() or not os.access(solana, os.X_OK):
+        raise RuntimeError("verified Solana CLI is not installed")
+    if args.action == "version":
+        argv = [str(solana), "--version"]
+    else:
+        config = load_config()
+        rpc_url = str(config.get("solana", {}).get("local", {}).get("rpc_url", "http://127.0.0.1:8899"))
+        rpc_url = validate_public_rpc_url(rpc_url, allow_local=True)
+        command = {
+            "slot": "slot",
+            "epoch": "epoch-info",
+            "block-height": "block-height",
+            "genesis-hash": "genesis-hash",
+            "transaction-count": "transaction-count",
+            "cluster-version": "cluster-version",
+        }[args.action]
+        argv = [str(solana), "--url", rpc_url, command]
+    return subprocess.run(argv, env=isolated_solana_env()).returncode
+
+
+def anchor_build_preflight(root: Path) -> None:
+    anchor_toml = root / "Anchor.toml"
+    cargo_toml = root / "Cargo.toml"
+    cargo_lock = root / "Cargo.lock"
+    for path in (anchor_toml, cargo_toml, cargo_lock):
+        if not path.is_file():
+            raise RuntimeError(f"safe Anchor build requires {path.name} at the workspace root")
+    try:
+        config = tomllib.loads(anchor_toml.read_text(encoding="utf-8"))
+    except (OSError, tomllib.TOMLDecodeError) as exc:
+        raise RuntimeError(f"could not validate Anchor.toml: {exc}") from exc
+
+    hooks = config.get("hooks", {})
+    if isinstance(hooks, dict) and any(hooks.get(name) for name in ("pre_build", "pre-build", "post_build", "post-build")):
+        raise RuntimeError("Anchor build hooks are refused because they execute arbitrary shell commands")
+    clients = config.get("clients", {})
+    if isinstance(clients, dict) and clients.get("auto") is True:
+        raise RuntimeError("automatic client generation is refused in the guarded Anchor build")
+    toolchain = config.get("toolchain", {})
+    if isinstance(toolchain, dict):
+        anchor_version = toolchain.get("anchor_version")
+        if anchor_version not in (None, locked_artifact_version("anchor")):
+            raise RuntimeError("Anchor.toml requests an unreviewed Anchor version")
+        if toolchain.get("solana_version") is not None:
+            raise RuntimeError("omit toolchain.solana_version; the guarded build injects the pinned SBF toolchain")
+    provider = config.get("provider", {})
+    if not isinstance(provider, dict) or str(provider.get("cluster", "")).lower() != "localnet":
+        raise RuntimeError("safe Anchor build requires provider.cluster = \"Localnet\"")
+    if provider.get("wallet") != "/dev/null":
+        raise RuntimeError("safe Anchor build requires provider.wallet = \"/dev/null\"")
+    deploy_dir = root / "target" / "deploy"
+    if deploy_dir.is_dir() and any(deploy_dir.glob("*-keypair.json")):
+        raise RuntimeError("program keypair files are present; move them outside the workspace before using the guarded build")
+
+
+def command_anchor_build(args: argparse.Namespace) -> int:
+    anchor = raw_bin_dir() / "anchor"
+    if not anchor.is_file() or not os.access(anchor, os.X_OK):
+        raise RuntimeError("verified Anchor CLI is not installed")
+    root = Path(args.directory).expanduser().resolve()
+    if not root.is_dir():
+        raise RuntimeError(f"Anchor workspace does not exist: {root}")
+    anchor_build_preflight(root)
+    platform_tools_version = locked_artifact_version("platform-tools")
+    if not platform_tools_version:
+        raise RuntimeError("pinned Solana platform-tools version is unavailable")
+    cargo_build_sbf_args = [
+        "--no-rustup-override",
+        "--skip-tools-install",
+        "--tools-version",
+        f"v{platform_tools_version.lstrip('v')}",
+    ]
+    if args.offline:
+        cargo_build_sbf_args.append("--offline")
+    argv = [
+        str(anchor),
+        "build",
+        "--ignore-keys",
+        "--no-idl",
+        "--",
+        *cargo_build_sbf_args,
+        "--",
+        "--locked",
+    ]
+    return subprocess.run(argv, cwd=root, env=isolated_solana_env(build=True)).returncode
+
+
+def command_anchor_version(_args: argparse.Namespace) -> int:
+    anchor = raw_bin_dir() / "anchor"
+    if not anchor.is_file() or not os.access(anchor, os.X_OK):
+        raise RuntimeError("verified Anchor CLI is not installed")
+    return subprocess.run([str(anchor), "--version"], env=isolated_solana_env()).returncode
+
+
 def dangerous_tool_invocation(tool: str, argv: list[str]) -> str | None:
     lowered = [part.lower() for part in argv]
     sensitive_flags = {
@@ -738,6 +898,14 @@ def command_exec(args: argparse.Namespace) -> int:
                 "arbitrary Surfpool commands are refused"
             )
         raw = raw_bin_dir() / "surfpool"
+        argv = [str(raw), *args.tool_args]
+    elif tool in {"solana", "anchor", "cargo", "rustc", "cargo-build-sbf"}:
+        allowed = (["--version"], ["--help"])
+        if args.tool_args not in allowed and not (tool == "anchor" and args.tool_args == ["build", "--help"]):
+            raise RuntimeError(
+                f"arbitrary {tool} commands are refused; use the fixed 'solana' or 'anchor' workstation commands"
+            )
+        raw = raw_bin_dir() / tool
         argv = [str(raw), *args.tool_args]
     else:
         reason = dangerous_tool_invocation(tool, args.tool_args)
@@ -907,6 +1075,25 @@ def build_parser() -> argparse.ArgumentParser:
     scaffold.add_argument("directory")
     scaffold.set_defaults(func=command_scaffold)
 
+    solana = sub.add_parser("solana", help="run a fixed read-only Solana CLI query against local Surfpool")
+    solana.add_argument(
+        "action",
+        choices=("version", "slot", "epoch", "block-height", "genesis-hash", "transaction-count", "cluster-version"),
+    )
+    solana.set_defaults(func=command_solana)
+
+    anchor = sub.add_parser("anchor", help="use the guarded, keypair-free Anchor workflow")
+    anchor_sub = anchor.add_subparsers(dest="anchor_action", required=True)
+    anchor_version = anchor_sub.add_parser("version", help="show the pinned Anchor CLI version")
+    anchor_version.set_defaults(func=command_anchor_version)
+    anchor_scaffold = anchor_sub.add_parser("scaffold", help="copy the bundled keypair-free Anchor sample")
+    anchor_scaffold.add_argument("directory")
+    anchor_scaffold.set_defaults(func=command_anchor_scaffold)
+    anchor_build = anchor_sub.add_parser("build", help="compile without loading or creating keypairs")
+    anchor_build.add_argument("directory", nargs="?", default=".")
+    anchor_build.add_argument("--offline", action="store_true", help="require cached crates and disable Cargo network access")
+    anchor_build.set_defaults(func=command_anchor_build)
+
     execute = sub.add_parser("exec", help="run a verified tool through the non-custodial guard")
     execute.add_argument(
         "tool",
@@ -925,6 +1112,11 @@ def build_parser() -> argparse.ArgumentParser:
             "echidna",
             "anvil",
             "surfpool",
+            "solana",
+            "anchor",
+            "cargo",
+            "rustc",
+            "cargo-build-sbf",
         ),
     )
     execute.add_argument("tool_args", nargs=argparse.REMAINDER)

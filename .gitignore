@@ -8,3 +8,10 @@ build/
 *.tmp
 *.log
 toolchains/python-requirements.lock.tmp
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*-keypair.json
+**/target/

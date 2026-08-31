@@ -1,6 +1,6 @@
 ---
 name: limechain-web3
-description: Safely build, inspect, compile, test, fuzz, statically analyze, and run local EVM or offline Solana projects on an Omarchy LimeChain Web3 Workstation. Use this skill for Solidity, Foundry, Forge, Cast, Anvil, Slither, Echidna, Surfpool, Solana local RPC, contract scaffolding, local chains, or read-only chain inspection on Omarchy. Keep all work non-custodial: never handle keys or seed phrases, sign or submit transactions, broadcast deployments, or deploy to mainnet.
+description: Safely build, inspect, compile, test, fuzz, statically analyze, and run local EVM or offline Solana projects on an Omarchy LimeChain Web3 Workstation. Use this skill for Solidity, Foundry, Forge, Cast, Anvil, Slither, Echidna, Surfpool, read-only Solana CLI, guarded Anchor compilation, local RPC, contract scaffolding, local chains, or read-only chain inspection on Omarchy. Keep all work non-custodial: never handle keys or seed phrases, sign or submit transactions, broadcast deployments, or deploy to mainnet.
 compatibility: Requires the `limechain-web3` command and an installed `evm-core` or `solana-core` profile.
 ---
 
@@ -83,7 +83,30 @@ limechain-web3 surfpool reset
 limechain-web3 surfpool stop
 ```
 
-The service is pinned to offline mode, loopback, in-memory state, no deployments, no startup airdrop, and `/dev/null` instead of the default Solana keypair path. Do not run arbitrary `surfpool start` flags, enable a remote datasource, expose Surfpool MCP, or access Solana wallet/keypair files. Solana CLI and Anchor workflows are not part of this profile yet.
+The service is pinned to offline mode, loopback, in-memory state, no deployments, no startup airdrop, and `/dev/null` instead of the default Solana keypair path. Do not run arbitrary `surfpool start` flags, enable a remote datasource, expose Surfpool MCP, or access Solana wallet/keypair files.
+
+Use only the fixed read-only Solana queries:
+
+```bash
+limechain-web3 solana version
+limechain-web3 solana slot
+limechain-web3 solana epoch
+limechain-web3 solana block-height
+limechain-web3 solana genesis-hash
+limechain-web3 solana transaction-count
+limechain-web3 solana cluster-version
+```
+
+For Anchor, scaffold only into a new directory and compile only through the guarded command:
+
+```bash
+limechain-web3 anchor version
+limechain-web3 anchor scaffold ./anchor-counter
+limechain-web3 anchor build ./anchor-counter
+limechain-web3 anchor build ./anchor-counter --offline
+```
+
+Do not invoke or emulate `anchor init`, `new`, `test`, `localnet`, `deploy`, `keys`, `account`, `migrate`, or `idl` commands. Do not bypass a refusal caused by a wallet path, build hook, automatic client generator, version override, missing `Cargo.lock`, or existing `*-keypair.json` file.
 
 ### Read-only local fork
 

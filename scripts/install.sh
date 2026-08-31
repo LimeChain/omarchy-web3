@@ -209,7 +209,7 @@ if (( ! SKIP_TOOLCHAINS )); then
       raw)
         install -m 0755 "$download" "$staging/$id"
         ;;
-      tar.gz | tar.xz | zip)
+      tar.gz | tar.xz | tar.bz2 | zip)
         bsdtar -xf "$download" -C "$staging" --strip-components "$strip_components"
         ;;
       *)
@@ -251,6 +251,15 @@ if (( ! SKIP_TOOLCHAINS )); then
     svm_dir="$LCW3_HOME/.svm/$solc_version"
     mkdir -p "$svm_dir"
     ln -sfn "$raw_bin/solc" "$svm_dir/solc-$solc_version"
+  fi
+
+  if [[ $PROFILE == "solana-core" ]]; then
+    platform_tools_version=$(jq -r '.artifacts[] | select(.id == "platform-tools") | .version' "$lock")
+    platform_tools_root="$toolchain_root/platform-tools/$platform_tools_version"
+    solana_home="$LCW3_APP_ROOT/solana-home"
+    install -d -m 0700 "$solana_home" "$solana_home/.cache" "$solana_home/.cache/solana"
+    install -d -m 0700 "$solana_home/.cache/solana/v$platform_tools_version"
+    ln -sfn "$platform_tools_root" "$solana_home/.cache/solana/v$platform_tools_version/platform-tools"
   fi
 
   while IFS= read -r command; do

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import importlib.machinery
 import os
 import shutil
 import subprocess
@@ -13,6 +14,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 CLI = ROOT / "bin" / "limechain-web3"
+CLI_MODULE = importlib.machinery.SourceFileLoader("limechain_web3_cli", str(CLI)).load_module()
 
 
 class RpcHandler(BaseHTTPRequestHandler):
@@ -86,6 +88,12 @@ class CliTests(unittest.TestCase):
         surfpool_remote = self.run_cli("exec", "surfpool", "start", "--network", "mainnet")
         self.assertEqual(surfpool_remote.returncode, 2)
         self.assertIn("fixed offline service", surfpool_remote.stderr)
+        solana_transfer = self.run_cli("exec", "solana", "transfer", "recipient", "1")
+        self.assertEqual(solana_transfer.returncode, 2)
+        self.assertIn("arbitrary solana commands are refused", solana_transfer.stderr)
+        anchor_test = self.run_cli("exec", "anchor", "test")
+        self.assertEqual(anchor_test.returncode, 2)
+        self.assertIn("arbitrary anchor commands are refused", anchor_test.stderr)
 
     def test_credential_bearing_rpc_url_is_refused(self) -> None:
         result = self.run_cli(
@@ -169,6 +177,8 @@ class CliTests(unittest.TestCase):
         self.assertEqual(report["solana"]["slot"], 77)
         self.assertEqual(report["solana"]["version"], "1.18-test")
         self.assertEqual(report["solana"]["surfpool_version"], "1.5.0")
+        self.assertEqual(report["solana"]["cli_version"], "4.2.2")
+        self.assertEqual(report["solana"]["anchor_version"], "1.1.2")
         self.assertEqual(report["solana"]["mode"], "offline")
 
     def test_scaffold_refuses_overwrite(self) -> None:
@@ -179,6 +189,20 @@ class CliTests(unittest.TestCase):
         second = self.run_cli("scaffold", str(destination))
         self.assertEqual(second.returncode, 2)
         self.assertIn("refusing to overwrite", second.stderr)
+
+    def test_anchor_scaffold_and_preflight_are_keypair_free(self) -> None:
+        destination = self.temp / "anchor-counter"
+        result = self.run_cli("anchor", "scaffold", str(destination))
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertTrue((destination / "Anchor.toml").is_file())
+        self.assertTrue((destination / "Cargo.lock").is_file())
+        self.assertFalse(any(destination.rglob("*-keypair.json")))
+        CLI_MODULE.anchor_build_preflight(destination)
+
+        with (destination / "Anchor.toml").open("a", encoding="utf-8") as stream:
+            stream.write('\n[hooks]\npre_build = "echo unsafe"\n')
+        with self.assertRaisesRegex(RuntimeError, "hooks are refused"):
+            CLI_MODULE.anchor_build_preflight(destination)
 
 
 if __name__ == "__main__":

@@ -14,7 +14,7 @@ Panel {
   property var report: ({
     chain: { name: "Web3", ok: false, block_height: null, gas_gwei: null, base_fee_gwei: null },
     local: { installed: true, ok: false, service_active: false, block_height: null },
-    solana: { installed: false, ok: false, service_active: false, slot: null, version: null, surfpool_version: null, mode: "offline" }
+    solana: { installed: false, ok: false, service_active: false, slot: null, version: null, surfpool_version: null, cli_version: null, anchor_version: null, mode: "offline" }
   })
   property string lastError: ""
   property bool refreshing: false
@@ -471,6 +471,8 @@ Panel {
         InfoPair { visible: root.solanaInstalled; label: "Mode"; value: "offline · loopback only" }
         InfoPair { visible: root.solanaInstalled; label: "Slot"; value: root.display(report.solana ? report.solana.slot : null, "") }
         InfoPair { visible: root.solanaInstalled; label: "Surfpool"; value: root.display(report.solana ? report.solana.surfpool_version : null, "") }
+        InfoPair { visible: root.solanaInstalled; label: "Solana CLI"; value: root.display(report.solana ? report.solana.cli_version : null, "") }
+        InfoPair { visible: root.solanaInstalled; label: "Anchor"; value: root.display(report.solana ? report.solana.anchor_version : null, "") }
         InfoPair { visible: root.solanaInstalled; label: "Solana core"; value: root.display(report.solana ? report.solana.version : null, "") }
 
         RowLayout {
@@ -533,7 +535,7 @@ Panel {
         Text {
           visible: root.solanaInstalled
           width: parent.width
-          text: "Offline, loopback-only runtime. No wallet, key, remote datasource, signing, or transaction submission through this plugin."
+          text: "Offline runtime plus guarded read-only CLI and keypair-free Anchor compile. No wallet, signing, deployment, or transaction submission."
           textFormat: Text.PlainText
           color: root.dim
           font.family: root.fontFamily

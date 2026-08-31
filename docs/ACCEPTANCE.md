@@ -46,6 +46,20 @@ limechain-web3 surfpool stop
 
 Confirm Surfpool reports healthy on `127.0.0.1:8899`, no non-loopback socket or established connection exists, the process arguments contain `--offline`, and the service cannot read the user's home directory. Confirm `limechain-web3 exec surfpool mcp` and a remote-network `surfpool start` invocation are refused before execution.
 
+## Solana CLI and Anchor
+
+```bash
+limechain-web3 surfpool start
+limechain-web3 solana version
+limechain-web3 solana slot
+limechain-web3 solana epoch
+limechain-web3 anchor scaffold /tmp/limechain-anchor-counter
+limechain-web3 anchor build /tmp/limechain-anchor-counter
+limechain-web3 anchor build /tmp/limechain-anchor-counter --offline
+```
+
+Confirm both Anchor builds produce the same program `.so`, no `*-keypair.json` exists before or after either build, the real home is absent from the child environment, and no Solana configuration or wallet file is opened. Add a build hook, remote provider, real wallet path, version override, or fake keypair filename one at a time and confirm each is refused before Anchor starts.
+
 ## Guard negative tests
 
 Confirm each command is refused before tool execution:
@@ -55,6 +69,8 @@ limechain-web3 exec cast send 0x0000000000000000000000000000000000000000
 limechain-web3 exec forge create src/Counter.sol:Counter
 limechain-web3 exec forge script script/Deploy.s.sol --broadcast
 limechain-web3 configure --name bad --chain-id 1 --rpc-url 'https://rpc.example/?key=secret'
+limechain-web3 exec solana transfer recipient 1
+limechain-web3 exec anchor test
 ```
 
 ## Update and uninstall

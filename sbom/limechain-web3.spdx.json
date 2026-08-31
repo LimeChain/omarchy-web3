@@ -8,9 +8,32 @@
     ]
   },
   "dataLicense": "CC0-1.0",
-  "documentNamespace": "https://limechain.tech/spdx/958653ce-ae43-50d6-9c48-16d60c19ea1c",
+  "documentNamespace": "https://limechain.tech/spdx/170d0ab7-9aa6-5956-aa20-fed07e424f86",
   "name": "limechain-omarchy-web3-0.1.0-dev",
   "packages": [
+    {
+      "SPDXID": "SPDXRef-Package-agave",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "5fc8684f7430038105fde953d4308ed56addf627f658daa61709f345448247ee"
+        }
+      ],
+      "copyrightText": "NOASSERTION",
+      "downloadLocation": "https://github.com/anza-xyz/agave/releases/download/v4.2.2/solana-release-x86_64-unknown-linux-gnu.tar.bz2",
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceLocator": "pkg:generic/agave@4.2.2?download_url=https://github.com/anza-xyz/agave/releases/download/v4.2.2/solana-release-x86_64-unknown-linux-gnu.tar.bz2",
+          "referenceType": "purl"
+        }
+      ],
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "NOASSERTION",
+      "name": "agave",
+      "versionInfo": "4.2.2"
+    },
     {
       "SPDXID": "SPDXRef-Package-aiohappyeyeballs",
       "copyrightText": "NOASSERTION",
@@ -61,6 +84,29 @@
       "licenseDeclared": "NOASSERTION",
       "name": "aiosignal",
       "versionInfo": "1.4.0"
+    },
+    {
+      "SPDXID": "SPDXRef-Package-anchor",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "fdea9979629e9416e5f5e5622ff6c11b8c691d1e559581ece368e903c0c980c1"
+        }
+      ],
+      "copyrightText": "NOASSERTION",
+      "downloadLocation": "https://github.com/otter-sec/anchor/releases/download/v1.1.2/anchor-1.1.2-x86_64-unknown-linux-gnu",
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceLocator": "pkg:generic/anchor@1.1.2?download_url=https://github.com/otter-sec/anchor/releases/download/v1.1.2/anchor-1.1.2-x86_64-unknown-linux-gnu",
+          "referenceType": "purl"
+        }
+      ],
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "NOASSERTION",
+      "name": "anchor",
+      "versionInfo": "1.1.2"
     },
     {
       "SPDXID": "SPDXRef-Package-annotated-types",
@@ -563,6 +609,29 @@
       "versionInfo": "0.10.0"
     },
     {
+      "SPDXID": "SPDXRef-Package-platform-tools",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "afdad6e0672942b00d69fc51ebde0d182c9b9ed21e078357fcedb50f921dae2d"
+        }
+      ],
+      "copyrightText": "NOASSERTION",
+      "downloadLocation": "https://github.com/anza-xyz/platform-tools/releases/download/v1.56/platform-tools-linux-x86_64.tar.bz2",
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceLocator": "pkg:generic/platform-tools@1.56?download_url=https://github.com/anza-xyz/platform-tools/releases/download/v1.56/platform-tools-linux-x86_64.tar.bz2",
+          "referenceType": "purl"
+        }
+      ],
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "NOASSERTION",
+      "name": "platform-tools",
+      "versionInfo": "1.56"
+    },
+    {
       "SPDXID": "SPDXRef-Package-prettytable",
       "copyrightText": "NOASSERTION",
       "downloadLocation": "NOASSERTION",
@@ -996,6 +1065,11 @@
       "spdxElementId": "SPDXRef-DOCUMENT"
     },
     {
+      "relatedSpdxElement": "SPDXRef-Package-agave",
+      "relationshipType": "DEPENDS_ON",
+      "spdxElementId": "SPDXRef-Package-limechain-web3"
+    },
+    {
       "relatedSpdxElement": "SPDXRef-Package-aiohappyeyeballs",
       "relationshipType": "DEPENDS_ON",
       "spdxElementId": "SPDXRef-Package-limechain-web3"
@@ -1007,6 +1081,11 @@
     },
     {
       "relatedSpdxElement": "SPDXRef-Package-aiosignal",
+      "relationshipType": "DEPENDS_ON",
+      "spdxElementId": "SPDXRef-Package-limechain-web3"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-Package-anchor",
       "relationshipType": "DEPENDS_ON",
       "spdxElementId": "SPDXRef-Package-limechain-web3"
     },
@@ -1142,6 +1221,11 @@
     },
     {
       "relatedSpdxElement": "SPDXRef-Package-parsimonious",
+      "relationshipType": "DEPENDS_ON",
+      "spdxElementId": "SPDXRef-Package-limechain-web3"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-Package-platform-tools",
       "relationshipType": "DEPENDS_ON",
       "spdxElementId": "SPDXRef-Package-limechain-web3"
     },

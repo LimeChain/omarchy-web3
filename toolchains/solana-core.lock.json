@@ -14,6 +14,41 @@
       "bins": {
         "surfpool": "surfpool"
       }
+    },
+    {
+      "id": "agave",
+      "version": "4.2.2",
+      "url": "https://github.com/anza-xyz/agave/releases/download/v4.2.2/solana-release-x86_64-unknown-linux-gnu.tar.bz2",
+      "sha256": "5fc8684f7430038105fde953d4308ed56addf627f658daa61709f345448247ee",
+      "archive": "tar.bz2",
+      "strip_components": 1,
+      "bins": {
+        "solana": "bin/solana",
+        "cargo-build-sbf": "bin/cargo-build-sbf"
+      }
+    },
+    {
+      "id": "anchor",
+      "version": "1.1.2",
+      "url": "https://github.com/otter-sec/anchor/releases/download/v1.1.2/anchor-1.1.2-x86_64-unknown-linux-gnu",
+      "sha256": "fdea9979629e9416e5f5e5622ff6c11b8c691d1e559581ece368e903c0c980c1",
+      "archive": "raw",
+      "strip_components": 0,
+      "bins": {
+        "anchor": "anchor"
+      }
+    },
+    {
+      "id": "platform-tools",
+      "version": "1.56",
+      "url": "https://github.com/anza-xyz/platform-tools/releases/download/v1.56/platform-tools-linux-x86_64.tar.bz2",
+      "sha256": "afdad6e0672942b00d69fc51ebde0d182c9b9ed21e078357fcedb50f921dae2d",
+      "archive": "tar.bz2",
+      "strip_components": 0,
+      "bins": {
+        "cargo": "rust/bin/cargo",
+        "rustc": "rust/bin/rustc"
+      }
     }
   ]
 }
