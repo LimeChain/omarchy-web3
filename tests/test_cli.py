@@ -199,9 +199,31 @@ class CliTests(unittest.TestCase):
         self.assertFalse(any(destination.rglob("*-keypair.json")))
         self.assertEqual(CLI_MODULE.anchor_build_preflight(destination), ["limechain_anchor_counter"])
 
+        original = (destination / "Anchor.toml").read_text(encoding="utf-8")
         with (destination / "Anchor.toml").open("a", encoding="utf-8") as stream:
             stream.write('\n[hooks]\npre_build = "echo unsafe"\n')
         with self.assertRaisesRegex(RuntimeError, "hooks are refused"):
+            CLI_MODULE.anchor_build_preflight(destination)
+
+        (destination / "Anchor.toml").write_text(
+            original.replace('wallet = "/dev/null"', 'wallet = "~/.config/solana/id.json"'),
+            encoding="utf-8",
+        )
+        with self.assertRaisesRegex(RuntimeError, "provider.wallet"):
+            CLI_MODULE.anchor_build_preflight(destination)
+
+        (destination / "Anchor.toml").write_text(
+            original + '\n[toolchain]\nsolana_version = "4.2.2"\n',
+            encoding="utf-8",
+        )
+        with self.assertRaisesRegex(RuntimeError, "omit toolchain.solana_version"):
+            CLI_MODULE.anchor_build_preflight(destination)
+
+        (destination / "Anchor.toml").write_text(original, encoding="utf-8")
+        deploy = destination / "target" / "deploy"
+        deploy.mkdir(parents=True)
+        (deploy / "limechain_anchor_counter-keypair.json").write_text("fake fixture", encoding="utf-8")
+        with self.assertRaisesRegex(RuntimeError, "program keypair files are present"):
             CLI_MODULE.anchor_build_preflight(destination)
 
 

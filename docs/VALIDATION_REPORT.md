@@ -36,6 +36,22 @@ The workstation was rebooted after installation. Post-reboot validation confirme
 - Start, status, Reset, health recovery, Quattro IPC refresh, profile coexistence, and arbitrary Surfpool/MCP refusal: passed.
 - Final Surfpool state: running so the new panel state can be inspected on the validation workstation.
 
+## Solana CLI and Anchor validation
+
+The guarded developer layer was validated on the same x86-64 Omarchy host from an isolated user-scoped prefix while the active Quattro session was locked. The installer correctly refused to replace or reload the active plugin during that lock state.
+
+- Verified artifacts: Agave/Solana CLI `4.2.2`, Anchor CLI `1.1.2`, Anchor-compatible SBF platform-tools `1.52`, and Surfpool `1.5.0`; every extracted-tree manifest and tool check passed.
+- Local CLI inspection: `version`, `slot`, `epoch`, `block-height`, `genesis-hash`, and `cluster-version` succeeded against offline Surfpool on `127.0.0.1:8899`.
+- Runtime compatibility: Solana CLI `4.2.2` inspected Surfpool's Solana core `4.1.2` without a wallet or Solana config home.
+- Guard negatives: arbitrary `solana transfer` and `anchor test` invocations were refused before upstream execution.
+- Fresh sample: the bundled Anchor workspace compiled from its committed `Cargo.lock` with network access disabled after the isolated Cargo cache was populated.
+- Reproducible output: repeated release builds produced `limechain_anchor_counter.so` SHA-256 `6433a5b3c237e44ba0f0a932dc0a107a886301e8590978639f618222edf46bcd`.
+- Key boundary: the final guarded online/offline builds left no `*-keypair.json` path anywhere in either sample tree.
+
+Live validation exposed two upstream behaviors that materially changed the guard design. Anchor `1.1.2` hardcodes SBF platform-tools `1.52`, so the initial newer `1.56` candidate was replaced with the compatible pinned artifact instead of overriding Anchor. More importantly, `cargo-build-sbf` generates a program keypair during post-processing even when Anchor receives `--ignore-keys`. The one keypair produced by the discovery run was immediately deleted from the temporary test workspace. The corrected wrapper now reserves every explicit cdylib program's expected keypair output as a temporary `/dev/null` symlink and removes the sentinel on every exit path. A fresh build then confirmed successful bytecode output with no generated keypair.
+
+The active Quattro plugin update remains intentionally pending until the physical session is unlocked; the verified download cache is already populated, so the final user-scoped install will not need to fetch these artifacts again.
+
 The first service draft used `MemoryDenyWriteExecute=true`. Live startup correctly revealed that Surfpool's Solana BPF loader needs executable-memory permission for `mprotect`; the service failed closed before opening an RPC socket. That single incompatible directive was removed while all network, home, privilege, namespace, and capability controls remained in place. A regression test retains the fixed offline and non-custodial service arguments.
 
 ## Incident and correction
