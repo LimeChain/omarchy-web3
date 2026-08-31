@@ -16,9 +16,9 @@ Not another price ticker. Not a wallet. Not a signing surface.
 
 <br>
 
-<img src="docs/assets/quattro-panel-active.png" alt="LimeChain Web3 Workstation panel running local Anvil in Omarchy Quattro" width="420">
+<img src="docs/assets/quattro-surfpool-active.png" alt="LimeChain Web3 Workstation panel running local Anvil and offline Surfpool in Omarchy Quattro" width="420">
 
-<sub>Native Quattro panel · local Anvil healthy · chain 31337 · zero bundled accounts</sub>
+<sub>Native Quattro panel · Anvil + offline Surfpool healthy · no wallet or key access</sub>
 
 </div>
 
