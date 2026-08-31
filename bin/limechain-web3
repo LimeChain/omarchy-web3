@@ -756,7 +756,8 @@ def command_solana(args: argparse.Namespace) -> int:
     return subprocess.run(argv, env=isolated_solana_env()).returncode
 
 
-def anchor_build_preflight(root: Path) -> None:
+def anchor_build_preflight(root: Path) -> list[str]:
+    root = root.resolve()
     anchor_toml = root / "Anchor.toml"
     cargo_toml = root / "Cargo.toml"
     cargo_lock = root / "Cargo.lock"
@@ -790,6 +791,40 @@ def anchor_build_preflight(root: Path) -> None:
     if deploy_dir.is_dir() and any(deploy_dir.glob("*-keypair.json")):
         raise RuntimeError("program keypair files are present; move them outside the workspace before using the guarded build")
 
+    try:
+        workspace_manifest = tomllib.loads(cargo_toml.read_text(encoding="utf-8"))
+    except (OSError, tomllib.TOMLDecodeError) as exc:
+        raise RuntimeError(f"could not validate workspace Cargo.toml: {exc}") from exc
+    workspace = workspace_manifest.get("workspace", {})
+    members = workspace.get("members", []) if isinstance(workspace, dict) else []
+    if not isinstance(members, list) or not members:
+        raise RuntimeError("safe Anchor build requires explicit Cargo workspace members")
+    program_names: list[str] = []
+    for member in members:
+        if not isinstance(member, str) or not member or any(character in member for character in "*?["):
+            raise RuntimeError("safe Anchor build does not accept wildcard Cargo workspace members")
+        member_root = (root / member).resolve()
+        if root not in member_root.parents:
+            raise RuntimeError("Cargo workspace member escapes the Anchor workspace")
+        member_manifest_path = member_root / "Cargo.toml"
+        try:
+            member_manifest = tomllib.loads(member_manifest_path.read_text(encoding="utf-8"))
+        except (OSError, tomllib.TOMLDecodeError) as exc:
+            raise RuntimeError(f"could not validate {member_manifest_path}: {exc}") from exc
+        lib = member_manifest.get("lib", {})
+        crate_types = lib.get("crate-type", []) if isinstance(lib, dict) else []
+        if "cdylib" not in crate_types:
+            continue
+        package = member_manifest.get("package", {})
+        package_name = package.get("name", "") if isinstance(package, dict) else ""
+        program_name = str(lib.get("name") or package_name).replace("-", "_")
+        if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", program_name):
+            raise RuntimeError(f"unsafe or missing Anchor program name in {member_manifest_path}")
+        program_names.append(program_name)
+    if not program_names:
+        raise RuntimeError("safe Anchor build found no explicit cdylib program members")
+    return sorted(set(program_names))
+
 
 def command_anchor_build(args: argparse.Namespace) -> int:
     anchor = raw_bin_dir() / "anchor"
@@ -798,7 +833,7 @@ def command_anchor_build(args: argparse.Namespace) -> int:
     root = Path(args.directory).expanduser().resolve()
     if not root.is_dir():
         raise RuntimeError(f"Anchor workspace does not exist: {root}")
-    anchor_build_preflight(root)
+    program_names = anchor_build_preflight(root)
     platform_tools_version = locked_artifact_version("platform-tools")
     if not platform_tools_version:
         raise RuntimeError("pinned Solana platform-tools version is unavailable")
@@ -817,7 +852,21 @@ def command_anchor_build(args: argparse.Namespace) -> int:
         "--",
         "--locked",
     ]
-    return subprocess.run(argv, cwd=root, env=isolated_solana_env(build=True)).returncode
+    env = isolated_solana_env(build=True)
+    env["CARGO_TARGET_DIR"] = str(root / "target")
+    deploy_dir = root / "target" / "deploy"
+    deploy_dir.mkdir(parents=True, exist_ok=True)
+    sentinels = [deploy_dir / f"{program_name}-keypair.json" for program_name in program_names]
+    for sentinel in sentinels:
+        if os.path.lexists(sentinel):
+            raise RuntimeError(f"refusing to replace an existing program keypair path: {sentinel}")
+        sentinel.symlink_to("/dev/null")
+    try:
+        return subprocess.run(argv, cwd=root, env=env).returncode
+    finally:
+        for sentinel in sentinels:
+            if os.path.lexists(sentinel):
+                sentinel.unlink()
 
 
 def command_anchor_version(_args: argparse.Namespace) -> int:

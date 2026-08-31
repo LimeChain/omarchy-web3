@@ -20,7 +20,7 @@ Report vulnerabilities privately through the security-advisory feature of the Gi
 - The managed Surfpool service is fixed to offline mode, loopback, in-memory state, no deployment, no startup airdrop, and no home-directory access.
 - Solana CLI runs with an isolated empty home and only fixed read-only commands against the configured loopback RPC.
 - Anchor builds require `Localnet`, `/dev/null` as the wallet path, a committed `Cargo.lock`, no build hooks, no automatic client generation, and no program-keypair files.
-- The guarded Anchor command injects `--ignore-keys`, `--no-idl`, and `--skip-tools-install`, and requires Anchor's pinned compatible SBF platform-tools tree; init, test, localnet, deploy, keys, account, airdrop, and transaction operations are not exposed.
+- The guarded Anchor command injects `--ignore-keys`, `--no-idl`, and `--skip-tools-install`, requires Anchor's pinned compatible SBF platform-tools tree, and reserves every expected `*-keypair.json` output as a temporary `/dev/null` symlink so `cargo-build-sbf` cannot generate a program keypair. The sentinels are removed after every build outcome.
 - The Quickshell plugin invokes only the status command, fixed Anvil/Surfpool controls, and validated explorer opening.
 - Configuration is stored with mode `0600` and rejected if it contains sensitive-looking fields.
 

@@ -55,6 +55,7 @@ class MetadataTests(unittest.TestCase):
         self.assertIn('"--ignore-keys"', cli)
         self.assertIn('"--skip-tools-install"', cli)
         self.assertIn('provider.get("wallet") != "/dev/null"', cli)
+        self.assertIn('sentinel.symlink_to("/dev/null")', cli)
 
     def test_no_aur_or_unpinned_curl_pipe(self) -> None:
         installer = (ROOT / "scripts" / "install.sh").read_text(encoding="utf-8")

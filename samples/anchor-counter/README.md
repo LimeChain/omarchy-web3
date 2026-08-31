@@ -10,5 +10,6 @@ limechain-web3 anchor build . --offline
 ```
 
 The wrapper always adds `--ignore-keys`, uses the pinned SBF platform tools,
-and points Anchor's required wallet field at `/dev/null`. It does not expose
+points Anchor's required wallet field at `/dev/null`, and reserves the expected
+program-keypair output as `/dev/null` while `cargo-build-sbf` runs. It does not expose
 `anchor init`, `test`, `localnet`, `deploy`, `keys`, or transaction commands.

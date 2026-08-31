@@ -197,7 +197,7 @@ class CliTests(unittest.TestCase):
         self.assertTrue((destination / "Anchor.toml").is_file())
         self.assertTrue((destination / "Cargo.lock").is_file())
         self.assertFalse(any(destination.rglob("*-keypair.json")))
-        CLI_MODULE.anchor_build_preflight(destination)
+        self.assertEqual(CLI_MODULE.anchor_build_preflight(destination), ["limechain_anchor_counter"])
 
         with (destination / "Anchor.toml").open("a", encoding="utf-8") as stream:
             stream.write('\n[hooks]\npre_build = "echo unsafe"\n')
