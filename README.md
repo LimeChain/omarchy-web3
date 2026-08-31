@@ -102,6 +102,31 @@ URLs containing usernames, passwords, query parameters, or fragments are rejecte
 - **Ready-to-run sample:** dependency-free Solidity unit tests, fuzz tests, Slither analysis, and an Echidna property.
 - **Supply-chain evidence:** version lockfiles, SHA-256 verification, SPDX SBOM, release checksums, and GitHub provenance.
 
+## Roadmap
+
+<div align="center">
+
+### EVM today. Multi-chain tomorrow.
+
+<img src="https://img.shields.io/badge/EVM%20CORE-READY-22c55e?style=for-the-badge&amp;logo=ethereum&amp;logoColor=white" alt="EVM Core — Ready">
+
+<br><br>
+
+**NEXT PROFILES**
+
+<br>
+
+<img src="https://img.shields.io/badge/SOLANA-NEXT-7c3aed?style=for-the-badge&amp;logo=solana&amp;logoColor=white" alt="Solana — Next">
+<img src="https://img.shields.io/badge/BITCOIN-NEXT-f59e0b?style=for-the-badge&amp;logo=bitcoin&amp;logoColor=white" alt="Bitcoin — Next">
+<img src="https://img.shields.io/badge/HEDERA-NEXT-111827?style=for-the-badge&amp;logo=hedera&amp;logoColor=white" alt="Hedera — Next">
+
+<br><br>
+
+<sub>ONE LIMECHAIN-READY STANDARD</sub><br>
+<sub>Reproducible install · Safe updates · Clean uninstall · Hardened security · Clean-ISO validation</sub>
+
+</div>
+
 ## Security is the feature
 
 ```text
@@ -128,31 +153,6 @@ limechain-web3 uninstall --purge
 ```
 
 Normal uninstall preserves credential-free configuration and the verified download cache. `--purge` removes both. Rollback behavior is documented in [ROLLBACK.md](docs/ROLLBACK.md).
-
-## Roadmap
-
-<div align="center">
-
-### EVM today. Multi-chain tomorrow.
-
-<img src="https://img.shields.io/badge/EVM%20CORE-READY-22c55e?style=for-the-badge&amp;logo=ethereum&amp;logoColor=white" alt="EVM Core — Ready">
-
-<br><br>
-
-**NEXT PROFILES**
-
-<br>
-
-<img src="https://img.shields.io/badge/SOLANA-NEXT-7c3aed?style=for-the-badge&amp;logo=solana&amp;logoColor=white" alt="Solana — Next">
-<img src="https://img.shields.io/badge/BITCOIN-NEXT-f59e0b?style=for-the-badge&amp;logo=bitcoin&amp;logoColor=white" alt="Bitcoin — Next">
-<img src="https://img.shields.io/badge/HEDERA-NEXT-111827?style=for-the-badge&amp;logo=hedera&amp;logoColor=white" alt="Hedera — Next">
-
-<br><br>
-
-<sub>ONE LIMECHAIN-READY STANDARD</sub><br>
-<sub>Reproducible install · Safe updates · Clean uninstall · Hardened security · Clean-ISO validation</sub>
-
-</div>
 
 ## License
 
