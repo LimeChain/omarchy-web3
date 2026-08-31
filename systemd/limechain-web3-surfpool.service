@@ -1,0 +1,45 @@
+[Unit]
+Description=LimeChain local offline Surfpool RPC
+Documentation=https://github.com/LimeChain/omarchy-web3
+StartLimitIntervalSec=30
+StartLimitBurst=3
+
+[Service]
+Type=simple
+WorkingDirectory=/tmp
+Environment=HOME=/tmp/limechain-web3-surfpool-home
+ExecStart="@APP_ROOT@/raw-bin/surfpool" start --offline --host 127.0.0.1 --port 8899 --ws-port 8900 --ci --no-deploy --yes --db :memory: --surfnet-id limechain-web3 --airdrop-keypair-path /dev/null --airdrop-amount 0
+Restart=on-failure
+RestartSec=2
+NoNewPrivileges=true
+KeyringMode=private
+CapabilityBoundingSet=
+AmbientCapabilities=
+PrivateTmp=true
+PrivateDevices=true
+PrivateUsers=true
+ProtectClock=true
+ProtectControlGroups=true
+ProtectHostname=true
+ProtectKernelLogs=true
+ProtectKernelModules=true
+ProtectKernelTunables=true
+ProtectSystem=strict
+ProtectHome=tmpfs
+BindReadOnlyPaths=@APP_ROOT@
+ProtectProc=invisible
+ProcSubset=pid
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+RestrictNamespaces=true
+RestrictSUIDSGID=true
+LockPersonality=true
+RestrictRealtime=true
+SystemCallFilter=@system-service
+SystemCallErrorNumber=EPERM
+SystemCallArchitectures=native
+IPAddressDeny=any
+IPAddressAllow=localhost
+UMask=0077
+
+[Install]
+WantedBy=default.target

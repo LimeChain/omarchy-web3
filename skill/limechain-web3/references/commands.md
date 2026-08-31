@@ -11,6 +11,9 @@
 | Start local RPC | `limechain-web3 anvil start` |
 | Stop local RPC | `limechain-web3 anvil stop` |
 | Reset local RPC | `limechain-web3 anvil reset` |
+| Start offline Solana RPC | `limechain-web3 surfpool start` |
+| Stop offline Solana RPC | `limechain-web3 surfpool stop` |
+| Reset offline Solana RPC | `limechain-web3 surfpool reset` |
 
 ## Verified tools
 
@@ -23,6 +26,7 @@ The guard refuses:
 - `forge create` and any Forge invocation containing `--broadcast`.
 - Credential flags including private-key, mnemonic, keystore, password, and AWS signer flags.
 - Arbitrary Anvil arguments. Use the fixed `anvil` and `fork` subcommands instead.
+- Arbitrary Surfpool commands, remote datasources, MCP, keypair, payer, and airdrop-keypair flags. Use the fixed `surfpool` subcommand instead.
 
 ## Credential-free chain configuration
 

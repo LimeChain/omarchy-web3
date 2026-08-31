@@ -1,0 +1,19 @@
+{
+  "schema": 1,
+  "profile": "solana-core",
+  "platform": "linux-x86_64",
+  "generated_at": "2026-08-31T00:00:00Z",
+  "artifacts": [
+    {
+      "id": "surfpool",
+      "version": "1.5.0",
+      "url": "https://github.com/solana-foundation/surfpool/releases/download/v1.5.0/surfpool-linux-x64.tar.gz",
+      "sha256": "5b20a3b46e60c4f819af7b4da5c3ea211f76041710617841cc23247d15887ddc",
+      "archive": "tar.gz",
+      "strip_components": 0,
+      "bins": {
+        "surfpool": "surfpool"
+      }
+    }
+  ]
+}

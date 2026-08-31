@@ -13,11 +13,13 @@ Panel {
 
   property var report: ({
     chain: { name: "Web3", ok: false, block_height: null, gas_gwei: null, base_fee_gwei: null },
-    local: { ok: false, service_active: false, block_height: null }
+    local: { installed: true, ok: false, service_active: false, block_height: null },
+    solana: { installed: false, ok: false, service_active: false, slot: null, version: null, surfpool_version: null, mode: "offline" }
   })
   property string lastError: ""
   property bool refreshing: false
   property string anvilAction: ""
+  property string surfpoolAction: ""
   readonly property string cli: Quickshell.env("HOME") + "/.local/bin/limechain-web3"
   readonly property int refreshSeconds: Math.max(5, parseInt(setting("refreshIntervalSec", 15), 10) || 15)
   readonly property color foreground: bar ? bar.foreground : Color.foreground
@@ -27,12 +29,20 @@ Panel {
   readonly property bool chainHealthy: report.chain && report.chain.ok === true
   readonly property bool chainConfigured: report.chain && report.chain.configured === true
   readonly property bool localHealthy: report.local && report.local.ok === true
+  readonly property bool evmInstalled: report.local && report.local.installed !== false
   readonly property bool anvilActive: report.local && report.local.service_active === true
+  readonly property bool solanaInstalled: report.solana && report.solana.installed === true
+  readonly property bool solanaHealthy: report.solana && report.solana.ok === true
+  readonly property bool surfpoolActive: report.solana && report.solana.service_active === true
   readonly property string barText: {
+    if (localHealthy && solanaHealthy)
+      return "A " + compactNumber(report.local.block_height) + " · S " + compactNumber(report.solana.slot)
     if (chainHealthy && report.chain.block_height !== null)
       return "⬡ " + compactNumber(report.chain.block_height)
     if (localHealthy && report.local.block_height !== null)
       return "A " + compactNumber(report.local.block_height)
+    if (solanaHealthy && report.solana.slot !== null)
+      return "S " + compactNumber(report.solana.slot)
     return "⬡"
   }
 
@@ -70,11 +80,32 @@ Panel {
     actionTimeout.stop()
   }
 
+  function runSurfpool(action) {
+    if (surfpoolActionProc.running || surfpoolAction !== "") return
+    surfpoolAction = action
+    lastError = ""
+    surfpoolActionProc.command = [root.cli, "surfpool", action]
+    surfpoolActionProc.running = true
+    surfpoolActionTimeout.restart()
+  }
+
+  function completeSurfpoolAction() {
+    surfpoolAction = ""
+    surfpoolActionTimeout.stop()
+  }
+
   function localServiceLabel() {
     if (anvilAction === "start") return "starting…"
     if (anvilAction === "stop") return "stopping…"
     if (anvilAction === "reset") return "resetting…"
     return anvilActive ? "active" : "stopped"
+  }
+
+  function surfpoolServiceLabel() {
+    if (surfpoolAction === "start") return "starting…"
+    if (surfpoolAction === "stop") return "stopping…"
+    if (surfpoolAction === "reset") return "resetting…"
+    return surfpoolActive ? "active" : "stopped"
   }
 
   function openRemoteGuide() {
@@ -115,11 +146,15 @@ Panel {
         if (!raw) return
         try {
           var parsed = JSON.parse(raw)
-          if (parsed && parsed.chain && parsed.local) {
+          if (parsed && parsed.chain && parsed.local && parsed.solana) {
             root.report = parsed
             if ((root.anvilAction === "start" && parsed.local.service_active === true)
                 || (root.anvilAction === "stop" && parsed.local.service_active === false))
               root.completeAnvilAction()
+            if (((root.surfpoolAction === "start" || root.surfpoolAction === "reset")
+                  && parsed.solana.service_active === true && parsed.solana.ok === true)
+                || (root.surfpoolAction === "stop" && parsed.solana.service_active === false))
+              root.completeSurfpoolAction()
           }
           root.lastError = ""
         } catch (error) {
@@ -160,15 +195,45 @@ Panel {
     }
   }
 
+  Process {
+    id: surfpoolActionProc
+    stderr: StdioCollector {
+      waitForEnd: true
+      onStreamFinished: {
+        var raw = String(text || "").trim()
+        if (raw) root.lastError = raw.split("\n")[0]
+      }
+    }
+    onExited: function(exitCode) {
+      if (exitCode !== 0) {
+        if (root.lastError === "") root.lastError = "Surfpool action failed"
+        root.completeSurfpoolAction()
+      }
+      Qt.callLater(root.refresh)
+    }
+  }
+
   Process { id: explorerProc }
   Process { id: guideProc }
 
   Timer {
     id: actionPoll
     interval: 300
-    running: root.anvilAction !== ""
+    running: root.anvilAction !== "" || root.surfpoolAction !== ""
     repeat: true
     onTriggered: root.refresh()
+  }
+
+
+  Timer {
+    id: surfpoolActionTimeout
+    interval: 12000
+    repeat: false
+    onTriggered: {
+      root.lastError = "Surfpool did not reach the expected state"
+      root.completeSurfpoolAction()
+      root.refresh()
+    }
   }
 
   Timer {
@@ -195,10 +260,13 @@ Panel {
     anchors.fill: parent
     bar: root.bar
     text: root.barText
-    slotSize: root.chainHealthy ? Style.bar.statusSlot : Style.bar.iconSlot
-    tooltipText: root.localHealthy ? "Local Anvil · block " + root.display(root.report.local.block_height, "")
+    slotSize: root.chainHealthy || root.localHealthy || root.solanaHealthy ? Style.bar.statusSlot : Style.bar.iconSlot
+    tooltipText: root.localHealthy && root.solanaHealthy
+      ? "Anvil block " + root.display(root.report.local.block_height, "") + " · Surfpool slot " + root.display(root.report.solana.slot, "")
+      : root.localHealthy ? "Local Anvil · block " + root.display(root.report.local.block_height, "")
+      : root.solanaHealthy ? "Offline Surfpool · slot " + root.display(root.report.solana.slot, "")
       : root.chainHealthy ? root.report.chain.name + " read-only status" : "Web3 Workstation · stopped"
-    active: root.localHealthy
+    active: root.localHealthy || root.solanaHealthy
     onPressed: function(code) {
       if (code === Qt.RightButton) root.refresh()
       else root.toggle()
@@ -231,9 +299,13 @@ Panel {
 
         PanelHero {
           width: parent.width
-          title: root.localHealthy ? "Local Anvil"
+          title: root.localHealthy && root.solanaHealthy ? "Web3 Workstation"
+            : root.localHealthy ? "Local Anvil"
+            : root.solanaHealthy ? "Local Surfpool"
             : root.chainHealthy ? root.report.chain.name : "Web3 Workstation"
-          meta: root.localHealthy ? "Local development RPC ready · chain 31337"
+          meta: root.localHealthy && root.solanaHealthy ? "EVM + Solana local runtimes ready"
+            : root.localHealthy ? "Local development RPC ready · chain 31337"
+            : root.solanaHealthy ? "Offline Solana RPC ready · slot " + root.display(root.report.solana.slot, "")
             : root.chainHealthy ? "Read-only remote observer" : "Start a local chain when you need it"
           foreground: root.foreground
           fontFamily: root.fontFamily
@@ -302,21 +374,23 @@ Panel {
           onClicked: root.openLatestBlock()
         }
 
-        PanelSeparator { foreground: root.foreground }
+        PanelSeparator { visible: root.evmInstalled; foreground: root.foreground }
 
         PanelSectionHeader {
+          visible: root.evmInstalled
           text: "LOCAL ANVIL"
           foreground: root.foreground
           fontFamily: root.fontFamily
         }
 
-        InfoPair { label: "Service"; value: root.localServiceLabel() }
-        InfoPair { label: "RPC"; value: root.anvilAction !== "" ? "checking…" : root.localHealthy ? "healthy" : "offline" }
-        InfoPair { label: "Chain ID"; value: root.display(report.local ? report.local.chain_id : null, "") }
-        InfoPair { label: "Block"; value: root.display(report.local ? report.local.block_height : null, "") }
-        InfoPair { label: "Gas"; value: root.display(report.local ? report.local.gas_gwei : null, " gwei") }
+        InfoPair { visible: root.evmInstalled; label: "Service"; value: root.localServiceLabel() }
+        InfoPair { visible: root.evmInstalled; label: "RPC"; value: root.anvilAction !== "" ? "checking…" : root.localHealthy ? "healthy" : "offline" }
+        InfoPair { visible: root.evmInstalled; label: "Chain ID"; value: root.display(report.local ? report.local.chain_id : null, "") }
+        InfoPair { visible: root.evmInstalled; label: "Block"; value: root.display(report.local ? report.local.block_height : null, "") }
+        InfoPair { visible: root.evmInstalled; label: "Gas"; value: root.display(report.local ? report.local.gas_gwei : null, " gwei") }
 
         RowLayout {
+          visible: root.evmInstalled
           width: parent.width
           spacing: Style.space(8)
 
@@ -373,8 +447,93 @@ Panel {
         }
 
         Text {
+          visible: root.evmInstalled
           width: parent.width
           text: "Account-free local RPC. No signing, keys, or transaction submission. Right-click the bar widget to refresh."
+          textFormat: Text.PlainText
+          color: root.dim
+          font.family: root.fontFamily
+          font.pixelSize: Style.font.caption
+          wrapMode: Text.WordWrap
+        }
+
+        PanelSeparator { visible: root.solanaInstalled; foreground: root.foreground }
+
+        PanelSectionHeader {
+          visible: root.solanaInstalled
+          text: "LOCAL SURFPOOL · SOLANA"
+          foreground: root.foreground
+          fontFamily: root.fontFamily
+        }
+
+        InfoPair { visible: root.solanaInstalled; label: "Service"; value: root.surfpoolServiceLabel() }
+        InfoPair { visible: root.solanaInstalled; label: "RPC"; value: root.surfpoolAction !== "" ? "checking…" : root.solanaHealthy ? "healthy" : "offline" }
+        InfoPair { visible: root.solanaInstalled; label: "Mode"; value: "offline · loopback only" }
+        InfoPair { visible: root.solanaInstalled; label: "Slot"; value: root.display(report.solana ? report.solana.slot : null, "") }
+        InfoPair { visible: root.solanaInstalled; label: "Surfpool"; value: root.display(report.solana ? report.solana.surfpool_version : null, "") }
+        InfoPair { visible: root.solanaInstalled; label: "Solana core"; value: root.display(report.solana ? report.solana.version : null, "") }
+
+        RowLayout {
+          visible: root.solanaInstalled
+          width: parent.width
+          spacing: Style.space(8)
+
+          Button {
+            visible: !root.surfpoolActive && root.surfpoolAction === ""
+            text: "Start offline Surfpool"
+            iconText: "󰐊"
+            foreground: root.foreground
+            fontFamily: root.fontFamily
+            bordered: true
+            Layout.fillWidth: true
+            onClicked: root.runSurfpool("start")
+          }
+          Button {
+            visible: root.surfpoolAction === "start"
+            text: "Starting…"
+            iconText: "󰑐"
+            iconSpinning: true
+            foreground: root.dim
+            fontFamily: root.fontFamily
+            bordered: true
+            Layout.fillWidth: true
+          }
+          Button {
+            visible: root.surfpoolActive && root.surfpoolAction === ""
+            text: "Stop"
+            iconText: "󰓛"
+            foreground: root.foreground
+            fontFamily: root.fontFamily
+            bordered: true
+            Layout.fillWidth: true
+            onClicked: root.runSurfpool("stop")
+          }
+          Button {
+            visible: root.surfpoolActive && root.surfpoolAction === ""
+            text: "Reset"
+            iconText: "󰑐"
+            foreground: root.foreground
+            fontFamily: root.fontFamily
+            bordered: true
+            Layout.fillWidth: true
+            onClicked: root.runSurfpool("reset")
+          }
+          Button {
+            visible: root.surfpoolAction === "stop" || root.surfpoolAction === "reset"
+            text: root.surfpoolAction === "stop" ? "Stopping…" : "Resetting…"
+            iconText: "󰑐"
+            iconSpinning: true
+            foreground: root.dim
+            fontFamily: root.fontFamily
+            bordered: true
+            Layout.fillWidth: true
+          }
+        }
+
+        Text {
+          visible: root.solanaInstalled
+          width: parent.width
+          text: "Offline, loopback-only runtime. No wallet, key, remote datasource, signing, or transaction submission through this plugin."
           textFormat: Text.PlainText
           color: root.dim
           font.family: root.fontFamily

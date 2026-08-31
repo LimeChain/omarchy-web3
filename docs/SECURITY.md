@@ -2,7 +2,7 @@
 
 ## Supported use
 
-This project supports compilation, unit tests, fuzzing, static analysis, local account-free RPC execution, credential-free local forks, and read-only chain inspection.
+This project supports compilation, unit tests, fuzzing, static analysis, local account-free EVM RPC execution, offline local Solana RPC execution, credential-free local forks, and read-only chain inspection.
 
 It does not support keys, seed phrases, signing, transaction submission, wallets, exchanges, or mainnet deployment. Do not report the absence of those features as a vulnerability; report any path that unexpectedly performs one of those actions.
 
@@ -17,7 +17,8 @@ Report vulnerabilities privately through the security-advisory feature of the Gi
 - The tool wrapper rejects known signing, broadcast, wallet, and credential arguments.
 - RPC configuration rejects URL user information, query strings, and fragments.
 - The managed Anvil service binds to loopback, runs silently, and creates zero accounts.
-- The Quickshell plugin invokes only the status command, fixed Anvil controls, and validated explorer opening.
+- The managed Surfpool service is fixed to offline mode, loopback, in-memory state, no deployment, no startup airdrop, and no home-directory access.
+- The Quickshell plugin invokes only the status command, fixed Anvil/Surfpool controls, and validated explorer opening.
 - Configuration is stored with mode `0600` and rejected if it contains sensitive-looking fields.
 
 These are defense-in-depth controls, not a sandbox. The underlying tools are powerful developer software, and Quickshell plugins run with the user's access.

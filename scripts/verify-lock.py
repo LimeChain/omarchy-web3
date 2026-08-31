@@ -17,22 +17,29 @@ from urllib.parse import urlsplit
 
 
 ROOT = Path(__file__).resolve().parents[1]
-LOCK = ROOT / "toolchains" / "evm-core.lock.json"
+LOCKS = {
+    "evm-core": ROOT / "toolchains" / "evm-core.lock.json",
+    "solana-core": ROOT / "toolchains" / "solana-core.lock.json",
+}
 PYTHON_LOCK = ROOT / "toolchains" / "python-requirements.lock"
 SHA256 = re.compile(r"^[0-9a-f]{64}$")
 TRUSTED_HOSTS = {"github.com", "nodejs.org"}
+EXPECTED_ARTIFACTS = {
+    "evm-core": {"foundry", "node", "bun", "echidna", "uv", "solc"},
+    "solana-core": {"surfpool"},
+}
 
 
 def fail(message: str) -> None:
     raise ValueError(message)
 
 
-def verify(download: bool) -> None:
-    lock = json.loads(LOCK.read_text(encoding="utf-8"))
-    if lock.get("schema") != 1 or lock.get("profile") != "evm-core":
-        fail("unexpected lockfile schema or profile")
+def verify_lock(profile: str, path: Path, download: bool) -> None:
+    lock = json.loads(path.read_text(encoding="utf-8"))
+    if lock.get("schema") != 1 or lock.get("profile") != profile:
+        fail(f"unexpected lockfile schema or profile: {path}")
     if lock.get("platform") != "linux-x86_64":
-        fail("MVP lockfile must target linux-x86_64")
+        fail(f"lockfile must target linux-x86_64: {path}")
 
     ids: set[str] = set()
     commands: set[str] = set()
@@ -95,20 +102,30 @@ def verify(download: bool) -> None:
             if hasher.hexdigest() != digest:
                 fail(f"downloaded checksum mismatch for {artifact_id}")
 
-    required = {"foundry", "node", "bun", "echidna", "uv", "solc"}
+    required = EXPECTED_ARTIFACTS[profile]
     if ids != required:
-        fail(f"artifact set differs from MVP contract: {sorted(ids)}")
-    python = lock.get("python", {})
-    if python.get("packages") != {"crytic-compile": "0.4.2", "slither": "0.11.6", "solc-select": "1.2.0"}:
-        fail("Python top-level versions differ from the reviewed set")
-    if not PYTHON_LOCK.is_file():
-        fail("Python requirements lock is missing")
-    requirements = PYTHON_LOCK.read_text(encoding="utf-8")
-    for requirement in ("crytic-compile==0.4.2", "slither-analyzer==0.11.6", "solc-select==1.2.0"):
-        if requirement not in requirements:
-            fail(f"Python lock is missing {requirement}")
-    if "--hash=sha256:" not in requirements:
-        fail("Python lock does not contain hashes")
+        fail(f"artifact set differs from {profile} contract: {sorted(ids)}")
+    if profile == "evm-core":
+        python = lock.get("python", {})
+        if python.get("packages") != {
+            "crytic-compile": "0.4.2",
+            "slither": "0.11.6",
+            "solc-select": "1.2.0",
+        }:
+            fail("Python top-level versions differ from the reviewed set")
+        if not PYTHON_LOCK.is_file():
+            fail("Python requirements lock is missing")
+        requirements = PYTHON_LOCK.read_text(encoding="utf-8")
+        for requirement in ("crytic-compile==0.4.2", "slither-analyzer==0.11.6", "solc-select==1.2.0"):
+            if requirement not in requirements:
+                fail(f"Python lock is missing {requirement}")
+        if "--hash=sha256:" not in requirements:
+            fail("Python lock does not contain hashes")
+
+
+def verify(download: bool) -> None:
+    for profile, path in LOCKS.items():
+        verify_lock(profile, path, download)
 
 
 def main() -> int:
@@ -120,7 +137,7 @@ def main() -> int:
     except (ValueError, OSError, json.JSONDecodeError) as exc:
         print(f"verify-lock: {exc}", file=sys.stderr)
         return 1
-    print("evm-core lock verified")
+    print("toolchain locks verified")
     return 0
 
 

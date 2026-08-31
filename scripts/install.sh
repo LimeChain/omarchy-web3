@@ -14,7 +14,7 @@ ENABLE_PLUGIN=1
 
 usage() {
   cat <<'USAGE'
-Usage: ./install [--profile evm-core] [--skip-toolchains] [--skip-omarchy] [--no-enable-plugin]
+Usage: ./install [--profile evm-core|solana-core] [--skip-toolchains] [--skip-omarchy] [--no-enable-plugin]
 
 Installs an additive, user-scoped Web3 workstation. It never invokes yay or sudo.
 USAGE
@@ -71,7 +71,10 @@ while (( $# > 0 )); do
   esac
 done
 
-[[ $PROFILE == "evm-core" ]] || lcw3_fail "only the evm-core profile exists in this MVP"
+case "$PROFILE" in
+evm-core | solana-core) ;;
+*) lcw3_fail "supported profiles: evm-core, solana-core" ;;
+esac
 
 for path_info in \
   "$LCW3_APP_ROOT:application root" \
@@ -87,7 +90,7 @@ done
 
 if (( ! SKIP_OMARCHY )); then
   [[ $(uname -s) == "Linux" ]] || lcw3_fail "Omarchy installation requires Linux"
-  [[ $(uname -m) == "x86_64" ]] || lcw3_fail "the MVP lockfile currently supports x86_64 only"
+  [[ $(uname -m) == "x86_64" ]] || lcw3_fail "the profile lockfiles currently support x86_64 only"
   command -v omarchy >/dev/null || lcw3_fail "Omarchy CLI is not available"
   command -v pacman >/dev/null || lcw3_fail "pacman is not available"
   omarchy_package=$(pacman -Q omarchy 2>/dev/null || true)
@@ -163,7 +166,7 @@ if (( ! SKIP_TOOLCHAINS )); then
     command -v "$command" >/dev/null || lcw3_fail "toolchain installation requires: $command"
   done
 
-  lock="$SOURCE_DIR/toolchains/evm-core.lock.json"
+  lock="$SOURCE_DIR/toolchains/$PROFILE.lock.json"
   cache_dir="$LCW3_CACHE_HOME/limechain-web3/downloads"
   toolchain_root="$LCW3_APP_ROOT/toolchains/installed"
   raw_bin="$LCW3_APP_ROOT/raw-bin"
@@ -234,33 +237,63 @@ if (( ! SKIP_TOOLCHAINS )); then
     done < <(jq -r '.bins | to_entries[] | [.key, .value] | @tsv' <<<"$artifact")
   done < <(jq -c '.artifacts[]' "$lock")
 
-  python_venv="$LCW3_APP_ROOT/python"
-  "$raw_bin/uv" venv --clear --python /usr/bin/python3 "$python_venv"
-  "$raw_bin/uv" pip sync --python "$python_venv/bin/python" --require-hashes "$SOURCE_DIR/toolchains/python-requirements.lock"
-  for command in crytic-compile slither solc-select; do
-    [[ -x $python_venv/bin/$command ]] || lcw3_fail "Python tool did not install: $command"
-    ln -sfn "$python_venv/bin/$command" "$raw_bin/$command"
-  done
-  [[ -x $python_venv/bin/solc ]] && ln -sfn "$python_venv/bin/solc" "$raw_bin/solc-select-solc"
+  if [[ $PROFILE == "evm-core" ]]; then
+    python_venv="$LCW3_APP_ROOT/python"
+    "$raw_bin/uv" venv --clear --python /usr/bin/python3 "$python_venv"
+    "$raw_bin/uv" pip sync --python "$python_venv/bin/python" --require-hashes "$SOURCE_DIR/toolchains/python-requirements.lock"
+    for command in crytic-compile slither solc-select; do
+      [[ -x $python_venv/bin/$command ]] || lcw3_fail "Python tool did not install: $command"
+      ln -sfn "$python_venv/bin/$command" "$raw_bin/$command"
+    done
+    [[ -x $python_venv/bin/solc ]] && ln -sfn "$python_venv/bin/solc" "$raw_bin/solc-select-solc"
 
-  solc_version=$(jq -r '.artifacts[] | select(.id == "solc") | .version' "$lock")
-  svm_dir="$LCW3_HOME/.svm/$solc_version"
-  mkdir -p "$svm_dir"
-  ln -sfn "$raw_bin/solc" "$svm_dir/solc-$solc_version"
+    solc_version=$(jq -r '.artifacts[] | select(.id == "solc") | .version' "$lock")
+    svm_dir="$LCW3_HOME/.svm/$solc_version"
+    mkdir -p "$svm_dir"
+    ln -sfn "$raw_bin/solc" "$svm_dir/solc-$solc_version"
+  fi
 
   while IFS= read -r command; do
     wrapper="$env_bin/$command"
     printf '#!/bin/bash\nexec %q exec %q "$@"\n' "$cli_link" "$command" >"$wrapper"
     chmod 0755 "$wrapper"
-  done < <(jq -r '[.artifacts[].bins | keys[]] | unique[]' "$lock"; printf '%s\n' crytic-compile slither solc-select)
+  done < <(
+    jq -r '[.artifacts[].bins | keys[]] | unique[]' "$lock"
+    if [[ $PROFILE == "evm-core" ]]; then
+      printf '%s\n' crytic-compile slither solc-select
+    fi
+  )
 fi
 
-unit_source="$SOURCE_DIR/systemd/limechain-web3-anvil.service"
-unit_target="$LCW3_SYSTEMD_ROOT/limechain-web3-anvil.service"
 mkdir -p "$LCW3_SYSTEMD_ROOT"
 escaped_root=${LCW3_APP_ROOT//&/\\&}
+case "$PROFILE" in
+evm-core)
+  unit_name="limechain-web3-anvil.service"
+  ;;
+solana-core)
+  unit_name="limechain-web3-surfpool.service"
+  ;;
+esac
+unit_source="$SOURCE_DIR/systemd/$unit_name"
+unit_target="$LCW3_SYSTEMD_ROOT/$unit_name"
 sed "s|@APP_ROOT@|$escaped_root|g" "$unit_source" >"$unit_target"
 chmod 0644 "$unit_target"
+
+existing_profiles='[]'
+if [[ -f $LCW3_INSTALL_STATE ]]; then
+  existing_profiles=$(jq -c 'if (.profiles | type) == "array" then .profiles elif .profile then [.profile] else [] end' "$LCW3_INSTALL_STATE")
+fi
+profiles=$(jq -cn --argjson existing "$existing_profiles" --arg profile "$PROFILE" '$existing + [$profile] | unique')
+jq -n \
+  --arg version "$(<"$SOURCE_DIR/VERSION")" \
+  --arg source "$SOURCE_DIR" \
+  --arg profile "$PROFILE" \
+  --argjson profiles "$profiles" \
+  --argjson plugin_managed "$plugin_managed" \
+  '{schema:2,version:$version,source:$source,profile:$profile,profiles:$profiles,plugin_managed:$plugin_managed}' \
+  >"$LCW3_INSTALL_STATE"
+chmod 0600 "$LCW3_INSTALL_STATE"
 
 "$cli_link" internal install-menu
 
@@ -279,15 +312,6 @@ if (( ! SKIP_OMARCHY )); then
   fi
   systemctl --user daemon-reload
 fi
-
-jq -n \
-  --arg version "$(<"$SOURCE_DIR/VERSION")" \
-  --arg source "$SOURCE_DIR" \
-  --arg profile "$PROFILE" \
-  --argjson plugin_managed "$plugin_managed" \
-  '{schema:1,version:$version,source:$source,profile:$profile,plugin_managed:$plugin_managed}' \
-  >"$LCW3_INSTALL_STATE"
-chmod 0600 "$LCW3_INSTALL_STATE"
 
 echo "LimeChain Web3 Workstation installed."
 echo "Run: limechain-web3 doctor"

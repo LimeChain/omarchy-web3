@@ -29,9 +29,10 @@ lcw3_assert_safe_path "$LCW3_SKILL_ROOT" "skill root"
 
 if command -v systemctl >/dev/null; then
   systemctl --user stop limechain-web3-anvil.service >/dev/null 2>&1 || true
-  rm -f "$LCW3_SYSTEMD_ROOT/limechain-web3-anvil.service"
+  systemctl --user stop limechain-web3-surfpool.service >/dev/null 2>&1 || true
   systemctl --user daemon-reload >/dev/null 2>&1 || true
 fi
+rm -f "$LCW3_SYSTEMD_ROOT/limechain-web3-anvil.service" "$LCW3_SYSTEMD_ROOT/limechain-web3-surfpool.service"
 
 if [[ -x $LCW3_APP_ROOT/bin/limechain-web3 ]]; then
   "$LCW3_APP_ROOT/bin/limechain-web3" internal remove-menu || true

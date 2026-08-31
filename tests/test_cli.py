@@ -24,6 +24,10 @@ class RpcHandler(BaseHTTPRequestHandler):
             "eth_blockNumber": "0x2a",
             "eth_gasPrice": "0x3b9aca00",
             "eth_getBlockByNumber": {"baseFeePerGas": "0x1dcd6500"},
+            "getHealth": "ok",
+            "getSlot": 77,
+            "getVersion": {"solana-core": "1.18-test"},
+            "getGenesisHash": "LCW3LocalGenesisHash",
         }
         body = json.dumps({"jsonrpc": "2.0", "id": request["id"], "result": results[request["method"]]}).encode()
         self.send_response(200)
@@ -76,6 +80,12 @@ class CliTests(unittest.TestCase):
         create = self.run_cli("exec", "forge", "--root", ".", "create", "src/Counter.sol:Counter")
         self.assertEqual(create.returncode, 2)
         self.assertIn("deployment", create.stderr)
+        surfpool = self.run_cli("exec", "surfpool", "mcp")
+        self.assertEqual(surfpool.returncode, 2)
+        self.assertIn("arbitrary Surfpool commands are refused", surfpool.stderr)
+        surfpool_remote = self.run_cli("exec", "surfpool", "start", "--network", "mainnet")
+        self.assertEqual(surfpool_remote.returncode, 2)
+        self.assertIn("fixed offline service", surfpool_remote.stderr)
 
     def test_credential_bearing_rpc_url_is_refused(self) -> None:
         result = self.run_cli(
@@ -134,6 +144,32 @@ class CliTests(unittest.TestCase):
         self.assertEqual(report["local"]["block_height"], 42)
         self.assertEqual(report["local"]["gas_gwei"], 1.0)
         self.assertFalse(report["chain"]["ok"])
+        self.assertFalse(report["solana"]["installed"])
+
+    def test_solana_rpc_status(self) -> None:
+        server = ThreadingHTTPServer(("127.0.0.1", 0), RpcHandler)
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        try:
+            config = json.loads(self.config.read_text(encoding="utf-8"))
+            config["solana"]["local"]["rpc_url"] = f"http://127.0.0.1:{server.server_port}"
+            self.config.write_text(json.dumps(config), encoding="utf-8")
+            os.chmod(self.config, 0o600)
+            self.env["LCW3_LOCK_FILE"] = str(ROOT / "toolchains" / "solana-core.lock.json")
+            result = self.run_cli("status", "--json")
+        finally:
+            server.shutdown()
+            server.server_close()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        report = json.loads(result.stdout)
+        self.assertEqual(report["schema"], 2)
+        self.assertFalse(report["local"]["installed"])
+        self.assertTrue(report["solana"]["installed"])
+        self.assertTrue(report["solana"]["ok"])
+        self.assertEqual(report["solana"]["slot"], 77)
+        self.assertEqual(report["solana"]["version"], "1.18-test")
+        self.assertEqual(report["solana"]["surfpool_version"], "1.5.0")
+        self.assertEqual(report["solana"]["mode"], "offline")
 
     def test_scaffold_refuses_overwrite(self) -> None:
         destination = self.temp / "counter"

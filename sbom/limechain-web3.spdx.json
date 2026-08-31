@@ -8,7 +8,7 @@
     ]
   },
   "dataLicense": "CC0-1.0",
-  "documentNamespace": "https://limechain.tech/spdx/2afacdac-f033-53d2-a400-ad4e61c66a43",
+  "documentNamespace": "https://limechain.tech/spdx/958653ce-ae43-50d6-9c48-16d60c19ea1c",
   "name": "limechain-omarchy-web3-0.1.0-dev",
   "packages": [
     {
@@ -790,6 +790,29 @@
       "versionInfo": "1.2.0"
     },
     {
+      "SPDXID": "SPDXRef-Package-surfpool",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "5b20a3b46e60c4f819af7b4da5c3ea211f76041710617841cc23247d15887ddc"
+        }
+      ],
+      "copyrightText": "NOASSERTION",
+      "downloadLocation": "https://github.com/solana-foundation/surfpool/releases/download/v1.5.0/surfpool-linux-x64.tar.gz",
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceLocator": "pkg:generic/surfpool@1.5.0?download_url=https://github.com/solana-foundation/surfpool/releases/download/v1.5.0/surfpool-linux-x64.tar.gz",
+          "referenceType": "purl"
+        }
+      ],
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "NOASSERTION",
+      "name": "surfpool",
+      "versionInfo": "1.5.0"
+    },
+    {
       "SPDXID": "SPDXRef-Package-toolz",
       "copyrightText": "NOASSERTION",
       "downloadLocation": "NOASSERTION",
@@ -1184,6 +1207,11 @@
     },
     {
       "relatedSpdxElement": "SPDXRef-Package-solc-select",
+      "relationshipType": "DEPENDS_ON",
+      "spdxElementId": "SPDXRef-Package-limechain-web3"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-Package-surfpool",
       "relationshipType": "DEPENDS_ON",
       "spdxElementId": "SPDXRef-Package-limechain-web3"
     },

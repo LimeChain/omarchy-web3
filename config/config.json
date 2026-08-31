@@ -10,6 +10,11 @@
     "rpc_url": "http://127.0.0.1:8545",
     "chain_id": 31337
   },
+  "solana": {
+    "local": {
+      "rpc_url": "http://127.0.0.1:8899"
+    }
+  },
   "telemetry": {
     "timeout_seconds": 3
   }

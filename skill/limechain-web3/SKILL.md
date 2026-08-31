@@ -1,7 +1,7 @@
 ---
 name: limechain-web3
-description: Safely build, inspect, compile, test, fuzz, statically analyze, and locally fork EVM projects on an Omarchy LimeChain Web3 Workstation. Use this skill whenever the user mentions Solidity, Foundry, Forge, Cast, Anvil, Slither, Echidna, EVM contract scaffolding, local chains, or read-only chain inspection on Omarchy. Keep all work non-custodial: never handle keys or seed phrases, sign or submit transactions, broadcast deployments, or deploy to mainnet.
-compatibility: Requires the `limechain-web3` command and the installed `evm-core` profile.
+description: Safely build, inspect, compile, test, fuzz, statically analyze, and run local EVM or offline Solana projects on an Omarchy LimeChain Web3 Workstation. Use this skill for Solidity, Foundry, Forge, Cast, Anvil, Slither, Echidna, Surfpool, Solana local RPC, contract scaffolding, local chains, or read-only chain inspection on Omarchy. Keep all work non-custodial: never handle keys or seed phrases, sign or submit transactions, broadcast deployments, or deploy to mainnet.
+compatibility: Requires the `limechain-web3` command and an installed `evm-core` or `solana-core` profile.
 ---
 
 # LimeChain Web3 Workstation
@@ -72,6 +72,19 @@ limechain-web3 anvil stop
 
 The managed service binds only to loopback and starts with zero accounts, so it emits no development keys.
 
+### Offline Solana RPC
+
+Use only the fixed Surfpool controls:
+
+```bash
+limechain-web3 surfpool start
+limechain-web3 status --json
+limechain-web3 surfpool reset
+limechain-web3 surfpool stop
+```
+
+The service is pinned to offline mode, loopback, in-memory state, no deployments, no startup airdrop, and `/dev/null` instead of the default Solana keypair path. Do not run arbitrary `surfpool start` flags, enable a remote datasource, expose Surfpool MCP, or access Solana wallet/keypair files. Solana CLI and Anchor workflows are not part of this profile yet.
+
 ### Read-only local fork
 
 Use `limechain-web3 fork --rpc-url <credential-free-public-url>` only when the user explicitly supplies or approves that public endpoint. The command must remain foreground-bound, loopback-only, silent, and account-free. Never convert a provider key into a URL or retrieve a provider credential from the environment.
@@ -87,7 +100,7 @@ Conclude with:
 - Files changed or created.
 - Verified tool versions used.
 - Compile, unit-test, fuzz, Slither, and Echidna results that were actually run.
-- Whether local Anvil or a local fork remains running.
+- Whether local Anvil, Surfpool, or a local fork remains running.
 - Any skipped check and the concrete reason it was skipped.
 
 Do not claim a test or analysis passed unless its command completed successfully.

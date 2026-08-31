@@ -46,8 +46,11 @@ def package(name: str, version: str, url: str, digest: str | None, purl: str) ->
 
 def build() -> dict[str, object]:
     version = (ROOT / "VERSION").read_text(encoding="utf-8").strip()
-    lock = json.loads((ROOT / "toolchains" / "evm-core.lock.json").read_text(encoding="utf-8"))
-    namespace_seed = hashlib.sha256(json.dumps(lock, sort_keys=True).encode()).hexdigest()
+    locks = [
+        json.loads((ROOT / "toolchains" / profile).read_text(encoding="utf-8"))
+        for profile in ("evm-core.lock.json", "solana-core.lock.json")
+    ]
+    namespace_seed = hashlib.sha256(json.dumps(locks, sort_keys=True).encode()).hexdigest()
     packages: list[dict[str, object]] = [
         {
             "SPDXID": spdx_id("limechain-web3"),
@@ -70,18 +73,23 @@ def build() -> dict[str, object]:
     relationships: list[dict[str, str]] = []
     root_id = spdx_id("limechain-web3")
 
-    for artifact in lock["artifacts"]:
-        item = package(
-            artifact["id"],
-            artifact["version"],
-            artifact["url"],
-            artifact["sha256"],
-            f"pkg:generic/{artifact['id']}@{artifact['version']}?download_url={artifact['url']}",
-        )
-        packages.append(item)
-        relationships.append(
-            {"spdxElementId": root_id, "relationshipType": "DEPENDS_ON", "relatedSpdxElement": str(item["SPDXID"])}
-        )
+    for lock in locks:
+        for artifact in lock["artifacts"]:
+            item = package(
+                artifact["id"],
+                artifact["version"],
+                artifact["url"],
+                artifact["sha256"],
+                f"pkg:generic/{artifact['id']}@{artifact['version']}?download_url={artifact['url']}",
+            )
+            packages.append(item)
+            relationships.append(
+                {
+                    "spdxElementId": root_id,
+                    "relationshipType": "DEPENDS_ON",
+                    "relatedSpdxElement": str(item["SPDXID"]),
+                }
+            )
 
     requirement_lines = (ROOT / "toolchains" / "python-requirements.lock").read_text(encoding="utf-8").splitlines()
     seen: set[str] = set()
@@ -110,7 +118,7 @@ def build() -> dict[str, object]:
         "name": f"limechain-omarchy-web3-{version}",
         "documentNamespace": f"https://limechain.tech/spdx/{uuid.uuid5(uuid.NAMESPACE_URL, namespace_seed)}",
         "creationInfo": {
-            "created": lock["generated_at"],
+            "created": max(str(lock["generated_at"]) for lock in locks),
             "creators": ["Organization: LimeChain", "Tool: scripts/generate-sbom.py"],
         },
         "packages": sorted(packages, key=lambda item: str(item["SPDXID"])),

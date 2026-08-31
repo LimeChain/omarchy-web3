@@ -26,8 +26,10 @@
 | Credential leakage through RPC URL | Reject user info, queries, and fragments; never enumerate environment variables | A credential embedded unusually in a hostname or path cannot be identified reliably |
 | Transaction submission by an agent | Guarded tool wrappers and explicit skill refusal | A user can deliberately bypass wrappers and run raw installed binaries |
 | Anvil exposing deterministic test keys | Managed service and fork use `--accounts 0 --silent` | A manually launched raw Anvil process may choose different behavior |
+| Surfpool contacting mainnet or reading the default Solana keypair | Fixed service uses `--offline`, `/dev/null`, zero startup airdrop, `ProtectHome=tmpfs`, and systemd network filtering that permits only localhost | A user can deliberately bypass the wrapper and run the raw binary |
+| Surfpool MCP generating or returning key material | Arbitrary Surfpool subcommands and MCP are refused; the plugin exposes only service controls and read-only health | Upstream capabilities remain available in the raw binary outside the workstation wrapper |
 | Existing config loss | Marker-bounded JSONC modification, native plugin state APIs, idempotent install | Manual edits inside the managed marker are replaced on reinstall |
-| Host exposure of local RPC | Bind only to `127.0.0.1` | Other processes belonging to the same user can access the RPC |
+| Host exposure of local RPC | Bind Anvil and Surfpool only to `127.0.0.1` | Other processes belonging to the same user can access the RPC |
 
 ## Out of scope
 

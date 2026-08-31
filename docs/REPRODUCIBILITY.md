@@ -5,6 +5,7 @@ For this MVP, reproducible means that a clean x86-64 Omarchy Quattro 4.x install
 ## Inputs
 
 - `toolchains/evm-core.lock.json` pins upstream release URLs and SHA-256 digests.
+- `toolchains/solana-core.lock.json` pins the reviewed Surfpool release URL and SHA-256 digest.
 - `toolchains/python-requirements.lock` pins the complete Python dependency graph and hashes.
 - `VERSION` identifies the workstation snapshot.
 - `sbom/limechain-web3.spdx.json` records the application and toolchain packages.
@@ -15,6 +16,7 @@ The lock does not claim bit-for-bit reproducibility of Omarchy or Arch Linux its
 
 ```bash
 jq -e '.schema == 1 and .profile == "evm-core"' toolchains/evm-core.lock.json
+jq -e '.schema == 1 and .profile == "solana-core"' toolchains/solana-core.lock.json
 python3 scripts/verify-lock.py
 python3 scripts/generate-sbom.py --check
 ```

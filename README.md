@@ -4,12 +4,13 @@
 
 ### Chain engineering for Omarchy Quattro
 
-**Build, test, fuzz, run, and inspect EVM chains from one reproducible workstation.**<br>
+**Build, test, fuzz, run, and inspect EVM and Solana locally from one reproducible workstation.**<br>
 Not another price ticker. Not a wallet. Not a signing surface.
 
 [![CI](https://github.com/LimeChain/omarchy-web3/actions/workflows/ci.yml/badge.svg)](https://github.com/LimeChain/omarchy-web3/actions/workflows/ci.yml)
 ![Omarchy](https://img.shields.io/badge/Omarchy-Quattro%204.x-d97706)
 ![Profile](https://img.shields.io/badge/profile-evm--core-f59e0b)
+![Solana](https://img.shields.io/badge/solana--core-Surfpool%20preview-7c3aed)
 ![Keys](https://img.shields.io/badge/keys-none-22c55e)
 [![License](https://img.shields.io/badge/license-MIT-f97316)](LICENSE)
 
@@ -42,6 +43,14 @@ omarchy plugin add https://github.com/LimeChain/omarchy-web3.git --enable --yes 
 
 One command. No fork. No unpinned `curl | bash`. No `sudo`. No blind `yay` bundle.
 
+Add the Solana preview profile with the same installer:
+
+```bash
+~/.config/omarchy/plugins/limechain.web3/install --profile solana-core
+```
+
+It installs the pinned Surfpool runtime and exposes only an offline, loopback-only local service. Solana CLI and Anchor are the next layer of this profile, after their artifact and key-handling boundaries are reviewed.
+
 ## Your first five minutes
 
 ```bash
@@ -69,16 +78,15 @@ limechain-web3 shell
 
 The installer does not replace an existing global Foundry, Node.js, Bun, Python, or Solidity setup.
 
-## One panel, two independent modes
+## One panel, three independent modes
 
-| | Local Anvil | Remote observer |
-|:--|:--|:--|
-| Purpose | Local development RPC | Read-only public chain/testnet telemetry |
-| Default | Available immediately | Unconfigured by design |
-| Network | `http://127.0.0.1:8545` | User-selected HTTPS endpoint |
-| Chain | `31337` | Must match the configured chain ID |
-| Actions | Start, Stop, Reset | Block, gas, fee, health, explorer |
-| Credentials | None | Credential-free URLs only |
+| | Local Anvil | Local Surfpool | Remote observer |
+|:--|:--|:--|:--|
+| Purpose | EVM development RPC | Offline Solana development RPC | Read-only public EVM telemetry |
+| Default | With `evm-core` | With `solana-core` | Unconfigured by design |
+| Network | `127.0.0.1:8545` | `127.0.0.1:8899` | User-selected HTTPS endpoint |
+| Actions | Start, Stop, Reset | Start, Stop, Reset | Block, gas, fee, health, explorer |
+| Credentials | None | No wallet/key access | Credential-free URLs only |
 
 A fresh local chain starts at block 0. **Reset** returns it to a clean block-0 state. Starting Anvil does not configure or contact a remote service.
 
@@ -99,6 +107,7 @@ URLs containing usernames, passwords, query parameters, or fragments are rejecte
 - **Verified EVM core:** `forge`, `cast`, `anvil`, `chisel`, Solidity, `solc-select`, Node.js LTS, Bun, Slither, Echidna, and `uv`.
 - **Native Omarchy integration:** Quattro bar widget, plugin panel, Omarchy menu entries, and a cross-agent skill at `~/.agents/skills/limechain-web3`.
 - **Managed local chain:** a loopback-only, silent `systemd --user` Anvil service with zero accounts.
+- **Solana preview:** pinned Surfpool with checksum verification and a hardened offline, loopback-only, in-memory service that bypasses the default keypair path.
 - **Ready-to-run sample:** dependency-free Solidity unit tests, fuzz tests, Slither analysis, and an Echidna property.
 - **Supply-chain evidence:** version lockfiles, SHA-256 verification, SPDX SBOM, release checksums, and GitHub provenance.
 
@@ -112,11 +121,11 @@ URLs containing usernames, passwords, query parameters, or fragments are rejecte
 
 <br><br>
 
-**NEXT PROFILES**
+**MULTI-CHAIN ROADMAP**
 
 <br>
 
-<img src="https://img.shields.io/badge/SOLANA-NEXT-7c3aed?style=for-the-badge&amp;logo=solana&amp;logoColor=white" alt="Solana — Next">
+<img src="https://img.shields.io/badge/SOLANA-SURFPOOL%20PREVIEW-7c3aed?style=for-the-badge&amp;logo=solana&amp;logoColor=white" alt="Solana — Surfpool preview">
 <img src="https://img.shields.io/badge/BITCOIN-NEXT-f59e0b?style=for-the-badge&amp;logo=bitcoin&amp;logoColor=white" alt="Bitcoin — Next">
 <img src="https://img.shields.io/badge/HEDERA-NEXT-111827?style=for-the-badge&amp;logo=hedera&amp;logoColor=white" alt="Hedera — Next">
 

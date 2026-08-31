@@ -24,10 +24,23 @@ class MetadataTests(unittest.TestCase):
         self.assertNotRegex(qml, r"command:\s*\[\s*\"(curl|wget|cast|forge|anvil)\"")
         self.assertIn('[root.cli, "status", "--json"]', qml)
         self.assertIn('[root.cli, "anvil", action]', qml)
+        self.assertIn('[root.cli, "surfpool", action]', qml)
         self.assertIn('visible: !root.anvilActive && root.anvilAction === ""', qml)
+        self.assertIn('visible: !root.surfpoolActive && root.surfpoolAction === ""', qml)
         self.assertIn('text: "REMOTE OBSERVER (OPTIONAL)"', qml)
         self.assertNotRegex(qml, r'enabled:\s*[!]?root\.anvilActive')
+        self.assertNotRegex(qml, r'enabled:\s*[!]?root\.surfpoolActive')
+        self.assertNotRegex(qml, r"command:\s*\[\s*\"surfpool\"")
         self.assertNotIn("private", qml.lower())
+
+    def test_surfpool_service_is_offline_and_non_custodial(self) -> None:
+        unit = (ROOT / "systemd" / "limechain-web3-surfpool.service").read_text(encoding="utf-8")
+        self.assertIn("start --offline --host 127.0.0.1", unit)
+        self.assertIn("--airdrop-keypair-path /dev/null --airdrop-amount 0", unit)
+        self.assertIn("--ci --no-deploy", unit)
+        self.assertIn("ProtectHome=tmpfs", unit)
+        self.assertIn("IPAddressDeny=any", unit)
+        self.assertIn("IPAddressAllow=localhost", unit)
 
     def test_no_aur_or_unpinned_curl_pipe(self) -> None:
         installer = (ROOT / "scripts" / "install.sh").read_text(encoding="utf-8")

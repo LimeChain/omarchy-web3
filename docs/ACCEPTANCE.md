@@ -34,6 +34,18 @@ limechain-web3 anvil stop
 
 Confirm the socket binds only to loopback, the RPC reports chain ID 31337, and service logs contain no accounts, private keys, or mnemonic.
 
+## Offline Solana RPC
+
+```bash
+./install --profile solana-core
+limechain-web3 surfpool start
+limechain-web3 status --json
+limechain-web3 surfpool reset
+limechain-web3 surfpool stop
+```
+
+Confirm Surfpool reports healthy on `127.0.0.1:8899`, no non-loopback socket or established connection exists, the process arguments contain `--offline`, and the service cannot read the user's home directory. Confirm `limechain-web3 exec surfpool mcp` and a remote-network `surfpool start` invocation are refused before execution.
+
 ## Guard negative tests
 
 Confirm each command is refused before tool execution:

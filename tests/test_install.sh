@@ -39,14 +39,18 @@ LCW3_TEST_LOCK_STATUS=1 PATH="$fake_bin:$PATH" bash -c \
 plugin_inode=$(python3 -c 'import os,sys; print(os.stat(sys.argv[1]).st_ino)' "$LCW3_PLUGIN_ROOT")
 "$ROOT/install" --skip-toolchains --skip-omarchy
 [[ $(python3 -c 'import os,sys; print(os.stat(sys.argv[1]).st_ino)' "$LCW3_PLUGIN_ROOT") == "$plugin_inode" ]]
+"$ROOT/install" --profile solana-core --skip-toolchains --skip-omarchy
+[[ $(python3 -c 'import os,sys; print(os.stat(sys.argv[1]).st_ino)' "$LCW3_PLUGIN_ROOT") == "$plugin_inode" ]]
 
 [[ -L $LCW3_BIN_HOME/limechain-web3 ]]
 [[ -f $LCW3_PLUGIN_ROOT/manifest.json ]]
 [[ -f $LCW3_SKILL_ROOT/SKILL.md ]]
 [[ -f $LCW3_SYSTEMD_ROOT/limechain-web3-anvil.service ]]
+[[ -f $LCW3_SYSTEMD_ROOT/limechain-web3-surfpool.service ]]
 grep -q 'crytic-compile' "$LCW3_APP_ROOT/scripts/install.sh"
 [[ $(grep -c 'BEGIN limechain.web3' "$LCW3_MENU_FILE") == 1 ]]
-jq -e '.profile == "evm-core"' "$LCW3_INSTALL_STATE" >/dev/null
+jq -e '.schema == 2 and .profile == "solana-core" and .profiles == ["evm-core", "solana-core"]' "$LCW3_INSTALL_STATE" >/dev/null
+grep -q 'Start Offline Surfpool' "$LCW3_MENU_FILE"
 
 "$LCW3_BIN_HOME/limechain-web3" uninstall
 

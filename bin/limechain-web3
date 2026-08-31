@@ -56,9 +56,50 @@ def config_path() -> Path:
     return Path(os.environ.get("LCW3_CONFIG_FILE", str(config_home() / "limechain-web3" / "config.json")))
 
 
-def lock_path() -> Path:
+def install_state_path() -> Path:
+    return Path(
+        os.environ.get(
+            "LCW3_INSTALL_STATE",
+            str(state_home() / "limechain-web3" / "install-state.json"),
+        )
+    )
+
+
+def installed_profiles() -> list[str]:
     override = os.environ.get("LCW3_LOCK_FILE")
-    return Path(override) if override else app_root() / "toolchains" / "evm-core.lock.json"
+    if override:
+        try:
+            return [str(read_json(Path(override)).get("profile", "evm-core"))]
+        except RuntimeError:
+            return ["evm-core"]
+    try:
+        state = read_json(install_state_path())
+    except RuntimeError:
+        return ["evm-core"]
+    profiles = state.get("profiles")
+    if isinstance(profiles, list):
+        return sorted({str(profile) for profile in profiles if profile in {"evm-core", "solana-core"}})
+    profile = str(state.get("profile", "evm-core"))
+    return [profile] if profile in {"evm-core", "solana-core"} else ["evm-core"]
+
+
+def lock_paths() -> list[Path]:
+    override = os.environ.get("LCW3_LOCK_FILE")
+    if override:
+        return [Path(override)]
+    return [app_root() / "toolchains" / f"{profile}.lock.json" for profile in installed_profiles()]
+
+
+def locked_artifact_version(artifact_id: str) -> str:
+    for path in lock_paths():
+        try:
+            lock = read_json(path)
+        except RuntimeError:
+            continue
+        for artifact in lock.get("artifacts", []):
+            if artifact.get("id") == artifact_id:
+                return str(artifact.get("version", ""))
+    return ""
 
 
 def raw_bin_dir() -> Path:
@@ -78,6 +119,15 @@ def systemd_unit_path() -> Path:
         os.environ.get(
             "LCW3_SYSTEMD_UNIT",
             str(config_home() / "systemd" / "user" / "limechain-web3-anvil.service"),
+        )
+    )
+
+
+def surfpool_systemd_unit_path() -> Path:
+    return Path(
+        os.environ.get(
+            "LCW3_SURFPOOL_SYSTEMD_UNIT",
+            str(config_home() / "systemd" / "user" / "limechain-web3-surfpool.service"),
         )
     )
 
@@ -226,6 +276,26 @@ def rpc_snapshot(url: str, timeout: float, *, local: bool) -> dict[str, Any]:
     }
 
 
+def solana_rpc_snapshot(url: str, timeout: float) -> dict[str, Any]:
+    safe_url = validate_public_rpc_url(url, allow_local=True)
+    started = time.monotonic()
+    health = rpc_call(safe_url, "getHealth", [], timeout)
+    if health != "ok":
+        raise RuntimeError("Solana RPC health check failed")
+    slot = rpc_call(safe_url, "getSlot", [], timeout)
+    version = rpc_call(safe_url, "getVersion", [], timeout)
+    genesis_hash = rpc_call(safe_url, "getGenesisHash", [], timeout)
+    if not isinstance(slot, int) or not isinstance(version, dict) or not isinstance(genesis_hash, str):
+        raise RuntimeError("Solana RPC returned an unexpected status shape")
+    return {
+        "ok": True,
+        "slot": slot,
+        "version": str(version.get("solana-core", version.get("feature-set", "unknown"))),
+        "genesis_hash": genesis_hash,
+        "latency_ms": round((time.monotonic() - started) * 1000),
+    }
+
+
 def inactive_snapshot(reason: str) -> dict[str, Any]:
     return {
         "ok": False,
@@ -233,6 +303,17 @@ def inactive_snapshot(reason: str) -> dict[str, Any]:
         "block_height": None,
         "gas_gwei": None,
         "base_fee_gwei": None,
+        "latency_ms": None,
+        "error": reason,
+    }
+
+
+def inactive_solana_snapshot(reason: str) -> dict[str, Any]:
+    return {
+        "ok": False,
+        "slot": None,
+        "version": None,
+        "genesis_hash": None,
         "latency_ms": None,
         "error": reason,
     }
@@ -254,12 +335,22 @@ def anvil_service_active() -> bool:
     return systemctl("is-active", "--quiet", "limechain-web3-anvil.service").returncode == 0
 
 
+def surfpool_service_active() -> bool:
+    return systemctl("is-active", "--quiet", "limechain-web3-surfpool.service").returncode == 0
+
+
 def command_status(args: argparse.Namespace) -> int:
     config = load_config()
     timeout = float(config.get("telemetry", {}).get("timeout_seconds", 3))
     timeout = min(10.0, max(0.5, timeout))
     chain = config.get("chain", {})
     local = config.get("local", {})
+    profiles = installed_profiles()
+    evm_installed = (
+        "evm-core" in profiles
+        or (raw_bin_dir() / "anvil").is_file()
+        or systemd_unit_path().is_file()
+    )
 
     remote_url = str(chain.get("rpc_url", "")).strip()
     if remote_url:
@@ -271,13 +362,31 @@ def command_status(args: argparse.Namespace) -> int:
         remote = inactive_snapshot("remote RPC not configured")
 
     local_url = str(local.get("rpc_url", "http://127.0.0.1:8545")).strip()
-    try:
-        local_report = rpc_snapshot(local_url, timeout, local=True)
-    except RuntimeError as exc:
-        local_report = inactive_snapshot(str(exc))
+    if evm_installed:
+        try:
+            local_report = rpc_snapshot(local_url, timeout, local=True)
+        except RuntimeError as exc:
+            local_report = inactive_snapshot(str(exc))
+    else:
+        local_report = inactive_snapshot("evm-core profile not installed")
+
+    solana_installed = (
+        "solana-core" in profiles
+        or (raw_bin_dir() / "surfpool").is_file()
+        or surfpool_systemd_unit_path().is_file()
+    )
+    solana = config.get("solana", {}).get("local", {})
+    solana_url = str(solana.get("rpc_url", "http://127.0.0.1:8899")).strip()
+    if solana_installed:
+        try:
+            solana_report = solana_rpc_snapshot(solana_url, timeout)
+        except RuntimeError as exc:
+            solana_report = inactive_solana_snapshot(str(exc))
+    else:
+        solana_report = inactive_solana_snapshot("solana-core profile not installed")
 
     report = {
-        "schema": 1,
+        "schema": 2,
         "chain": {
             "configured": bool(remote_url),
             "name": str(chain.get("name", "Unconfigured")),
@@ -286,9 +395,18 @@ def command_status(args: argparse.Namespace) -> int:
             **remote,
         },
         "local": {
+            "installed": evm_installed,
             "expected_chain_id": local.get("chain_id", 31337),
-            "service_active": anvil_service_active(),
+            "service_active": anvil_service_active() if evm_installed else False,
             **local_report,
+        },
+        "solana": {
+            "installed": solana_installed,
+            "service_active": surfpool_service_active() if solana_installed else False,
+            "rpc_url": solana_url,
+            "mode": "offline",
+            "surfpool_version": locked_artifact_version("surfpool") or None,
+            **solana_report,
         },
     }
     if args.json:
@@ -296,13 +414,17 @@ def command_status(args: argparse.Namespace) -> int:
     else:
         chain_report = report["chain"]
         local_status = "healthy" if report["local"]["ok"] else "offline"
+        solana_status = "healthy" if report["solana"]["ok"] else "offline"
+        local_summary = f"Anvil {local_status}"
+        if report["solana"]["installed"]:
+            local_summary += f", Surfpool {solana_status}"
         if chain_report["ok"]:
             print(
                 f"{chain_report['name']}: block {chain_report['block_height']:,}, "
-                f"gas {chain_report['gas_gwei']} gwei; local RPC {local_status}"
+                f"gas {chain_report['gas_gwei']} gwei; {local_summary}"
             )
         else:
-            print(f"{chain_report['name']}: {chain_report['error']}; local RPC {local_status}")
+            print(f"{chain_report['name']}: {chain_report['error']}; {local_summary}")
     return 0
 
 
@@ -415,20 +537,30 @@ def command_doctor(args: argparse.Namespace) -> int:
         add("config", False, str(exc))
 
     expected: dict[str, str] = {}
-    try:
-        lock = read_json(lock_path())
-        for artifact in lock.get("artifacts", []):
-            artifact_root = app_root() / "toolchains" / "installed" / str(artifact.get("id")) / str(artifact.get("version"))
-            tree_ok, tree_detail = verify_tree_manifest(artifact_root)
-            add(f"artifact:{artifact.get('id')}", tree_ok, tree_detail)
-            for tool in artifact.get("bins", {}):
-                expected[tool] = str(artifact.get("version", ""))
-        for tool in ("crytic-compile", "slither", "solc-select"):
-            expected[tool] = str(lock.get("python", {}).get("packages", {}).get(tool, ""))
-    except RuntimeError as exc:
-        add("lockfile", False, str(exc))
-    else:
-        add("lockfile", True, str(lock_path()))
+    profiles: set[str] = set()
+    for current_lock_path in lock_paths():
+        try:
+            lock = read_json(current_lock_path)
+            profile = str(lock.get("profile", "unknown"))
+            profiles.add(profile)
+            for artifact in lock.get("artifacts", []):
+                artifact_root = (
+                    app_root()
+                    / "toolchains"
+                    / "installed"
+                    / str(artifact.get("id"))
+                    / str(artifact.get("version"))
+                )
+                tree_ok, tree_detail = verify_tree_manifest(artifact_root)
+                add(f"artifact:{artifact.get('id')}", tree_ok, tree_detail)
+                for tool in artifact.get("bins", {}):
+                    expected[tool] = str(artifact.get("version", ""))
+            for tool, version in lock.get("python", {}).get("packages", {}).items():
+                expected[str(tool)] = str(version)
+        except RuntimeError as exc:
+            add(f"lockfile:{current_lock_path.stem}", False, str(exc))
+        else:
+            add(f"lockfile:{profile}", True, str(current_lock_path))
 
     for tool, version in sorted(expected.items()):
         path = raw_bin_dir() / tool
@@ -437,7 +569,10 @@ def command_doctor(args: argparse.Namespace) -> int:
         version_ok = bool(actual) and (independently_versioned or not version or version.lstrip("v") in actual)
         add(f"tool:{tool}", version_ok, actual or "missing")
 
-    add("anvil-unit", systemd_unit_path().is_file(), str(systemd_unit_path()))
+    if "evm-core" in profiles:
+        add("anvil-unit", systemd_unit_path().is_file(), str(systemd_unit_path()))
+    if "solana-core" in profiles:
+        add("surfpool-unit", surfpool_systemd_unit_path().is_file(), str(surfpool_systemd_unit_path()))
     add("shell-plugin", (config_home() / "omarchy" / "plugins" / APP_ID / "manifest.json").is_file(), APP_ID)
     add("agent-skill", (_home() / ".agents" / "skills" / "limechain-web3" / "SKILL.md").is_file(), "limechain-web3")
 
@@ -483,6 +618,23 @@ def command_anvil(args: argparse.Namespace) -> int:
     return 0
 
 
+def command_surfpool(args: argparse.Namespace) -> int:
+    if args.action == "status":
+        active = surfpool_service_active()
+        print("active" if active else "inactive")
+        return 0 if active else 3
+    if not surfpool_systemd_unit_path().is_file():
+        raise RuntimeError(f"Surfpool service is not installed: {surfpool_systemd_unit_path()}")
+    if not (raw_bin_dir() / "surfpool").is_file():
+        raise RuntimeError("verified Surfpool binary is not installed")
+    action = "restart" if args.action == "reset" else args.action
+    result = systemctl(action, "limechain-web3-surfpool.service")
+    if result.returncode != 0:
+        raise RuntimeError((result.stderr or result.stdout).strip() or f"systemctl {action} failed")
+    print(f"Surfpool {args.action} complete")
+    return 0
+
+
 def command_fork(args: argparse.Namespace) -> int:
     url = validate_public_rpc_url(args.rpc_url, resolve=True)
     anvil = raw_bin_dir() / "anvil"
@@ -520,7 +672,17 @@ def command_scaffold(args: argparse.Namespace) -> int:
 
 def dangerous_tool_invocation(tool: str, argv: list[str]) -> str | None:
     lowered = [part.lower() for part in argv]
-    sensitive_flags = {"--private-key", "--mnemonic", "--keystore", "--password", "--aws"}
+    sensitive_flags = {
+        "--private-key",
+        "--mnemonic",
+        "--keystore",
+        "--password",
+        "--aws",
+        "--keypair",
+        "--airdrop-keypair-path",
+        "--payer",
+        "--secret-key",
+    }
     if any(part in sensitive_flags or any(part.startswith(flag + "=") for flag in sensitive_flags) for part in lowered):
         return "credential and signing flags are outside this workstation's boundary"
     rpc_flags = {"--rpc-url", "--eth-rpc-url", "--fork-url"}
@@ -569,6 +731,14 @@ def command_exec(args: argparse.Namespace) -> int:
             raise RuntimeError("use 'limechain-web3 anvil' or 'limechain-web3 fork'; arbitrary Anvil flags are refused")
         raw = raw_bin_dir() / "anvil"
         argv = [str(raw), "--host", "127.0.0.1", "--accounts", "0", "--silent"]
+    elif tool == "surfpool":
+        if args.tool_args not in (["--version"], ["--help"], ["start", "--help"]):
+            raise RuntimeError(
+                "use 'limechain-web3 surfpool' for the fixed offline service; "
+                "arbitrary Surfpool commands are refused"
+            )
+        raw = raw_bin_dir() / "surfpool"
+        argv = [str(raw), *args.tool_args]
     else:
         reason = dangerous_tool_invocation(tool, args.tool_args)
         if reason:
@@ -586,8 +756,12 @@ def command_shell(args: argparse.Namespace) -> int:
     if not Path(shell).is_file():
         shell = "/bin/bash"
     env = sanitized_env()
-    env["LIMECHAIN_WEB3_ENV"] = "evm-core"
-    print("Entering verified evm-core shell. Signing and broadcast wrappers remain blocked.")
+    profiles = installed_profiles()
+    env["LIMECHAIN_WEB3_ENV"] = ",".join(profiles)
+    print(
+        f"Entering verified {' + '.join(profiles)} shell. "
+        "Signing, broadcast, and arbitrary runtime commands remain blocked."
+    )
     return subprocess.run([shell, "-l"], env=env).returncode
 
 
@@ -615,28 +789,43 @@ def _strip_jsonc_comments(text: str) -> str:
 def install_menu_extension() -> None:
     path = menu_path()
     path.parent.mkdir(parents=True, exist_ok=True)
+    if path.exists() and MENU_BEGIN in path.read_text(encoding="utf-8"):
+        remove_menu_extension()
     if path.exists():
         text = path.read_text(encoding="utf-8")
     else:
         text = "{\n}\n"
-    if MENU_BEGIN in text:
-        return
     close_index = text.rfind("}")
     if close_index < 0:
         raise RuntimeError(f"menu extension is not a JSONC object: {path}")
     before = text[:close_index]
     significant = _strip_jsonc_comments(before).rstrip()
     delimiter = "" if significant.endswith(("{", ",")) else ","
-    block = (
-        f"  {MENU_BEGIN}\n"
-        f"  {delimiter}\"web3\": {{\"icon\":\"󰡪\",\"label\":\"Web3 Workstation\"}},\n"
-        "  \"web3.status\": {\"icon\":\"󰄬\",\"label\":\"Chain Status\",\"action\":\"omarchy-shell shell toggle limechain.web3\"},\n"
-        "  \"web3.shell\": {\"icon\":\"\",\"label\":\"Verified EVM Shell\",\"action\":\"omarchy-launch-floating-terminal-with-presentation 'limechain-web3 shell'\"},\n"
-        "  \"web3.anvil-start\": {\"icon\":\"󰐊\",\"label\":\"Start Local Anvil\",\"action\":\"omarchy-launch-floating-terminal-with-presentation 'limechain-web3 anvil start'\"},\n"
-        "  \"web3.anvil-stop\": {\"icon\":\"󰓛\",\"label\":\"Stop Local Anvil\",\"action\":\"omarchy-launch-floating-terminal-with-presentation 'limechain-web3 anvil stop'\"},\n"
-        "  \"web3.doctor\": {\"icon\":\"󰒓\",\"label\":\"Run Workstation Doctor\",\"action\":\"omarchy-launch-floating-terminal-with-presentation 'limechain-web3 doctor; read -r'\"}\n"
-        f"  {MENU_END}\n"
+    entries = [
+        f'{delimiter}"web3": {{"icon":"󰡪","label":"Web3 Workstation"}}',
+        '"web3.status": {"icon":"󰄬","label":"Chain Status","action":"omarchy-shell shell toggle limechain.web3"}',
+        '"web3.shell": {"icon":"","label":"Verified Web3 Shell","action":"omarchy-launch-floating-terminal-with-presentation \'limechain-web3 shell\'"}',
+    ]
+    profiles = installed_profiles()
+    if "evm-core" in profiles:
+        entries.extend(
+            [
+                '"web3.anvil-start": {"icon":"󰐊","label":"Start Local Anvil","action":"omarchy-launch-floating-terminal-with-presentation \'limechain-web3 anvil start\'"}',
+                '"web3.anvil-stop": {"icon":"󰓛","label":"Stop Local Anvil","action":"omarchy-launch-floating-terminal-with-presentation \'limechain-web3 anvil stop\'"}',
+            ]
+        )
+    if "solana-core" in profiles:
+        entries.extend(
+            [
+                '"web3.surfpool-start": {"icon":"󰐊","label":"Start Offline Surfpool","action":"omarchy-launch-floating-terminal-with-presentation \'limechain-web3 surfpool start\'"}',
+                '"web3.surfpool-stop": {"icon":"󰓛","label":"Stop Offline Surfpool","action":"omarchy-launch-floating-terminal-with-presentation \'limechain-web3 surfpool stop\'"}',
+            ]
+        )
+    entries.append(
+        '"web3.doctor": {"icon":"󰒓","label":"Run Workstation Doctor","action":"omarchy-launch-floating-terminal-with-presentation \'limechain-web3 doctor; read -r\'"}'
     )
+    rendered_entries = ",\n".join(f"  {entry}" for entry in entries)
+    block = f"  {MENU_BEGIN}\n{rendered_entries}\n  {MENU_END}\n"
     updated = before.rstrip() + "\n" + block + text[close_index:]
     temp = path.with_suffix(".tmp")
     temp.write_text(updated, encoding="utf-8")
@@ -704,6 +893,10 @@ def build_parser() -> argparse.ArgumentParser:
     anvil.add_argument("action", choices=("start", "stop", "restart", "reset", "status"))
     anvil.set_defaults(func=command_anvil)
 
+    surfpool = sub.add_parser("surfpool", help="control the fixed offline local Surfpool service")
+    surfpool.add_argument("action", choices=("start", "stop", "restart", "reset", "status"))
+    surfpool.set_defaults(func=command_surfpool)
+
     fork = sub.add_parser("fork", help="run a foreground, account-free fork from a public RPC URL")
     fork.add_argument("--rpc-url", required=True)
     fork.add_argument("--port", type=int, default=8545, choices=range(1024, 65536), metavar="PORT")
@@ -715,7 +908,25 @@ def build_parser() -> argparse.ArgumentParser:
     scaffold.set_defaults(func=command_scaffold)
 
     execute = sub.add_parser("exec", help="run a verified tool through the non-custodial guard")
-    execute.add_argument("tool", choices=("forge", "cast", "node", "npm", "npx", "bun", "bunx", "solc", "solc-select", "crytic-compile", "slither", "echidna", "anvil"))
+    execute.add_argument(
+        "tool",
+        choices=(
+            "forge",
+            "cast",
+            "node",
+            "npm",
+            "npx",
+            "bun",
+            "bunx",
+            "solc",
+            "solc-select",
+            "crytic-compile",
+            "slither",
+            "echidna",
+            "anvil",
+            "surfpool",
+        ),
+    )
     execute.add_argument("tool_args", nargs=argparse.REMAINDER)
     execute.set_defaults(func=command_exec)
 
