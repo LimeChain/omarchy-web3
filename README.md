@@ -9,8 +9,8 @@ Not another price ticker. Not a wallet. Not a signing surface.
 
 [![CI](https://github.com/LimeChain/omarchy-web3/actions/workflows/ci.yml/badge.svg)](https://github.com/LimeChain/omarchy-web3/actions/workflows/ci.yml)
 ![Omarchy](https://img.shields.io/badge/Omarchy-Quattro%204.x-d97706)
-![Profile](https://img.shields.io/badge/profile-evm--core-f59e0b)
-![Solana](https://img.shields.io/badge/solana--core-CLI%20%2B%20Anchor%20%2B%20Surfpool-7c3aed)
+![EVM Core](https://img.shields.io/badge/EVM%20CORE-READY-22c55e)
+![Solana Core](https://img.shields.io/badge/SOLANA%20CORE-READY-7c3aed)
 ![Keys](https://img.shields.io/badge/keys-none-22c55e)
 [![License](https://img.shields.io/badge/license-MIT-f97316)](LICENSE)
 
@@ -26,7 +26,7 @@ Not another price ticker. Not a wallet. Not a signing surface.
 
 | Build | Break | Run | Inspect |
 |:--|:--|:--|:--|
-| Foundry, Solidity, Node.js, Bun | Slither, Echidna, Forge fuzzing | Account-free Anvil on loopback | Blocks, gas, fees, RPC health, explorer links |
+| Foundry, Anchor, Solidity, Rust, Node.js, Bun | Slither, Echidna, Forge fuzzing | Account-free Anvil + offline Surfpool | EVM blocks/fees + Solana slots/cluster health |
 
 Everything is additive and user-scoped. Tool versions and checksums are pinned, the sample contract runs locally, and the Quattro plugin delegates to a deliberately narrow CLI surface.
 
@@ -43,7 +43,7 @@ omarchy plugin add https://github.com/LimeChain/omarchy-web3.git --enable --yes 
 
 One command. No fork. No unpinned `curl | bash`. No `sudo`. No blind `yay` bundle.
 
-Add the ready Solana profile with the same installer:
+Add the production-ready Solana profile with the same installer:
 
 ```bash
 ~/.config/omarchy/plugins/limechain.web3/install --profile solana-core
@@ -127,24 +127,42 @@ URLs containing usernames, passwords, query parameters, or fragments are rejecte
 
 <div align="center">
 
-### Multi-chain is here. More chains next.
+### Two ecosystems ready. More networks are coming.
 
-<img src="https://img.shields.io/badge/EVM%20CORE-READY-22c55e?style=for-the-badge&amp;logo=ethereum&amp;logoColor=white" alt="EVM Core — Ready">
-
-<br><br>
-
-**MULTI-CHAIN ROADMAP**
+<table>
+  <tr>
+    <th colspan="2">READY NOW</th>
+  </tr>
+  <tr>
+    <td align="center">
+      <img src="https://img.shields.io/badge/EVM%20CORE-READY-22c55e?style=for-the-badge&amp;logo=ethereum&amp;logoColor=white" alt="EVM Core — Ready"><br>
+      <sub>Foundry · Anvil · Slither · Echidna</sub>
+    </td>
+    <td align="center">
+      <img src="https://img.shields.io/badge/SOLANA%20CORE-READY-7c3aed?style=for-the-badge&amp;logo=solana&amp;logoColor=white" alt="Solana Core — Ready"><br>
+      <sub>Solana CLI · Anchor · Surfpool</sub>
+    </td>
+  </tr>
+  <tr>
+    <th colspan="2">NEXT ON THE ROADMAP</th>
+  </tr>
+  <tr>
+    <td align="center">
+      <img src="https://img.shields.io/badge/BITCOIN-NEXT-f59e0b?style=for-the-badge&amp;logo=bitcoin&amp;logoColor=white" alt="Bitcoin — Next"><br>
+      <sub>Local development and read-only inspection</sub>
+    </td>
+    <td align="center">
+      <img src="https://img.shields.io/badge/HEDERA-NEXT-111827?style=for-the-badge&amp;logo=hedera&amp;logoColor=white" alt="Hedera — Next"><br>
+      <sub>Local tooling and read-only inspection</sub>
+    </td>
+  </tr>
+</table>
 
 <br>
 
-<img src="https://img.shields.io/badge/SOLANA-CLI%20%2B%20ANCHOR%20%2B%20SURFPOOL-7c3aed?style=for-the-badge&amp;logo=solana&amp;logoColor=white" alt="Solana — CLI, Anchor and Surfpool ready">
-<img src="https://img.shields.io/badge/BITCOIN-NEXT-f59e0b?style=for-the-badge&amp;logo=bitcoin&amp;logoColor=white" alt="Bitcoin — Next">
-<img src="https://img.shields.io/badge/HEDERA-NEXT-111827?style=for-the-badge&amp;logo=hedera&amp;logoColor=white" alt="Hedera — Next">
-
-<br><br>
-
-<sub>ONE LIMECHAIN-READY STANDARD</sub><br>
-<sub>Reproducible install · Safe updates · Clean uninstall · Hardened security · Clean-ISO validation</sub>
+<strong>ONE LIMECHAIN-READY STANDARD</strong><br>
+<sub>Reproducible installation · Safe updates · Clean uninstallation · Hardened security · Clean-ISO validation</sub><br><br>
+<sub>Bitcoin and Hedera are next—not last. Additional networks will follow the same non-custodial, reproducible profile model.</sub>
 
 </div>
 
