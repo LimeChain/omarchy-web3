@@ -129,9 +129,9 @@ limechain-web3 uninstall --purge
 
 Normal uninstall preserves credential-free configuration and the verified download cache. `--purge` removes both. Rollback behavior is documented in [ROLLBACK.md](docs/ROLLBACK.md).
 
-## MVP scope
+## Roadmap
 
-`evm-core` is the ten-day MVP. Bitcoin and Solana profiles are intentionally deferred until the EVM install, update, uninstall, security, and clean-ISO validation paths are release-grade.
+The `evm-core` profile is ready. Solana, Bitcoin, and Hedera are next on the roadmap, following the same standard for reproducible installation, safe updates, clean uninstallation, security, and clean-ISO validation.
 
 ## License
 
