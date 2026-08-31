@@ -50,7 +50,7 @@ class MetadataTests(unittest.TestCase):
         self.assertEqual(set(artifacts), {"surfpool", "agave", "anchor", "platform-tools"})
         self.assertEqual(artifacts["agave"]["bins"]["solana"], "bin/solana")
         self.assertEqual(artifacts["anchor"]["archive"], "raw")
-        self.assertEqual(artifacts["platform-tools"]["version"], "1.56")
+        self.assertEqual(artifacts["platform-tools"]["version"], "1.52")
         cli = (ROOT / "bin" / "limechain-web3").read_text(encoding="utf-8")
         self.assertIn('"--ignore-keys"', cli)
         self.assertIn('"--skip-tools-install"', cli)

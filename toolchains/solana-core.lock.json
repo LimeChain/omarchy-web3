@@ -40,9 +40,9 @@
     },
     {
       "id": "platform-tools",
-      "version": "1.56",
-      "url": "https://github.com/anza-xyz/platform-tools/releases/download/v1.56/platform-tools-linux-x86_64.tar.bz2",
-      "sha256": "afdad6e0672942b00d69fc51ebde0d182c9b9ed21e078357fcedb50f921dae2d",
+      "version": "1.52",
+      "url": "https://github.com/anza-xyz/platform-tools/releases/download/v1.52/platform-tools-linux-x86_64.tar.bz2",
+      "sha256": "8b3861e93daf085ec12b65c4fac374d9bec4587a3de16871da6b08ab0c1d907e",
       "archive": "tar.bz2",
       "strip_components": 0,
       "bins": {

@@ -118,7 +118,7 @@ URLs containing usernames, passwords, query parameters, or fragments are rejecte
 - **Verified EVM core:** `forge`, `cast`, `anvil`, `chisel`, Solidity, `solc-select`, Node.js LTS, Bun, Slither, Echidna, and `uv`.
 - **Native Omarchy integration:** Quattro bar widget, plugin panel, Omarchy menu entries, and a cross-agent skill at `~/.agents/skills/limechain-web3`.
 - **Managed local chain:** a loopback-only, silent `systemd --user` Anvil service with zero accounts.
-- **Verified Solana core:** Agave CLI `4.2.2`, Anchor `1.1.2`, SBF platform-tools `1.56`, and Surfpool `1.5.0`, all from versioned upstream release artifacts with locked SHA-256 digests.
+- **Verified Solana core:** Agave CLI `4.2.2`, Anchor `1.1.2`, its compatible SBF platform-tools `1.52`, and Surfpool `1.5.0`, all from versioned upstream release artifacts with locked SHA-256 digests.
 - **Narrow Solana workflow:** local read-only CLI queries and keypair-free Anchor scaffolding/compilation; wallet, keygen, config, airdrop, test/deploy, and transaction commands stay blocked.
 - **Ready-to-run sample:** dependency-free Solidity unit tests, fuzz tests, Slither analysis, and an Echidna property.
 - **Supply-chain evidence:** version lockfiles, SHA-256 verification, SPDX SBOM, release checksums, and GitHub provenance.

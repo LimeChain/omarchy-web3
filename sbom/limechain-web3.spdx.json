@@ -8,7 +8,7 @@
     ]
   },
   "dataLicense": "CC0-1.0",
-  "documentNamespace": "https://limechain.tech/spdx/170d0ab7-9aa6-5956-aa20-fed07e424f86",
+  "documentNamespace": "https://limechain.tech/spdx/1032a65f-63fa-55d9-a18c-f7585b8f61d5",
   "name": "limechain-omarchy-web3-0.1.0-dev",
   "packages": [
     {
@@ -613,15 +613,15 @@
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "afdad6e0672942b00d69fc51ebde0d182c9b9ed21e078357fcedb50f921dae2d"
+          "checksumValue": "8b3861e93daf085ec12b65c4fac374d9bec4587a3de16871da6b08ab0c1d907e"
         }
       ],
       "copyrightText": "NOASSERTION",
-      "downloadLocation": "https://github.com/anza-xyz/platform-tools/releases/download/v1.56/platform-tools-linux-x86_64.tar.bz2",
+      "downloadLocation": "https://github.com/anza-xyz/platform-tools/releases/download/v1.52/platform-tools-linux-x86_64.tar.bz2",
       "externalRefs": [
         {
           "referenceCategory": "PACKAGE-MANAGER",
-          "referenceLocator": "pkg:generic/platform-tools@1.56?download_url=https://github.com/anza-xyz/platform-tools/releases/download/v1.56/platform-tools-linux-x86_64.tar.bz2",
+          "referenceLocator": "pkg:generic/platform-tools@1.52?download_url=https://github.com/anza-xyz/platform-tools/releases/download/v1.52/platform-tools-linux-x86_64.tar.bz2",
           "referenceType": "purl"
         }
       ],
@@ -629,7 +629,7 @@
       "licenseConcluded": "NOASSERTION",
       "licenseDeclared": "NOASSERTION",
       "name": "platform-tools",
-      "versionInfo": "1.56"
+      "versionInfo": "1.52"
     },
     {
       "SPDXID": "SPDXRef-Package-prettytable",

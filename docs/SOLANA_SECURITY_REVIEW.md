@@ -8,7 +8,7 @@ Review date: 2026-08-31
 |:--|:--|:--|:--|
 | Agave / Solana CLI | `4.2.2` | `anza-xyz/agave` Linux x86-64 release tarball | `5fc8684f7430038105fde953d4308ed56addf627f658daa61709f345448247ee` |
 | Anchor CLI | `1.1.2` | `otter-sec/anchor` Linux x86-64 release binary | `fdea9979629e9416e5f5e5622ff6c11b8c691d1e559581ece368e903c0c980c1` |
-| SBF platform tools | `1.56` | `anza-xyz/platform-tools` Linux x86-64 release tarball | `afdad6e0672942b00d69fc51ebde0d182c9b9ed21e078357fcedb50f921dae2d` |
+| SBF platform tools | `1.52` | `anza-xyz/platform-tools` Linux x86-64 release tarball | `8b3861e93daf085ec12b65c4fac374d9bec4587a3de16871da6b08ab0c1d907e` |
 | Surfpool | `1.5.0` | `solana-foundation/surfpool` Linux x86-64 release tarball | `5b20a3b46e60c4f819af7b4da5c3ea211f76041710617841cc23247d15887ddc` |
 
 The lockfile uses immutable versioned GitHub release URLs. GitHub's release-asset digests were compared with the committed hashes; the install path independently hashes the downloaded bytes before extraction and records a file manifest for the extracted tree.
@@ -24,6 +24,7 @@ The upstream command surfaces are intentionally broader than this workstation:
 - Anchor `test` builds, starts a validator, deploys programs, and runs tests. Anchor `deploy`, `keys`, `account`, `migrate`, `idl`, and related commands cross the key/signing or remote-state boundary and are refused.
 - Anchor lifecycle hooks execute arbitrary shell commands. Guarded builds reject `pre_build`, `post_build`, and their hyphenated aliases before launching Anchor.
 - `toolchain.anchor_version` and `toolchain.solana_version` can trigger version-manager or installer behavior. Mismatched Anchor versions and any Solana override are rejected.
+- Anchor `1.1.2` hardcodes `cargo build-sbf --tools-version v1.52`. The profile therefore pins that compatible upstream artifact and adds `--skip-tools-install`; a newer but unreviewed toolchain is not substituted.
 
 ## Exposed surface
 

@@ -23,7 +23,7 @@ python3 scripts/generate-sbom.py --check
 
 The installer refuses a checksum mismatch and never falls back to an unverified package source.
 
-The sample Anchor workspace commits its complete `Cargo.lock`. Its first build may fetch those locked crates into the workstation's isolated Cargo home; a subsequent `limechain-web3 anchor build . --offline` must succeed without fetching new dependencies. `cargo-build-sbf` is forced to the preinstalled platform-tools `1.56` tree and is not allowed to download a different toolchain.
+The sample Anchor workspace commits its complete `Cargo.lock`. Its first build may fetch those locked crates into the workstation's isolated Cargo home; a subsequent `limechain-web3 anchor build . --offline` must succeed without fetching new dependencies. Anchor `1.1.2` selects platform-tools `1.52`; the wrapper requires that exact preinstalled tree and adds `--skip-tools-install`, so `cargo-build-sbf` cannot download a different toolchain.
 
 ## AUR policy
 

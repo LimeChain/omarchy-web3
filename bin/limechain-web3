@@ -802,12 +802,9 @@ def command_anchor_build(args: argparse.Namespace) -> int:
     platform_tools_version = locked_artifact_version("platform-tools")
     if not platform_tools_version:
         raise RuntimeError("pinned Solana platform-tools version is unavailable")
-    cargo_build_sbf_args = [
-        "--no-rustup-override",
-        "--skip-tools-install",
-        "--tools-version",
-        f"v{platform_tools_version.lstrip('v')}",
-    ]
+    if platform_tools_version != "1.52":
+        raise RuntimeError("Anchor 1.1.2 requires the reviewed SBF platform-tools 1.52")
+    cargo_build_sbf_args = ["--no-rustup-override", "--skip-tools-install"]
     if args.offline:
         cargo_build_sbf_args.append("--offline")
     argv = [
