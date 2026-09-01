@@ -9,7 +9,7 @@
   },
   "dataLicense": "CC0-1.0",
   "documentNamespace": "https://limechain.tech/spdx/1032a65f-63fa-55d9-a18c-f7585b8f61d5",
-  "name": "limechain-omarchy-web3-0.1.0-dev",
+  "name": "limechain-omarchy-web3-0.1.0",
   "packages": [
     {
       "SPDXID": "SPDXRef-Package-agave",
@@ -524,7 +524,7 @@
       "externalRefs": [
         {
           "referenceCategory": "PACKAGE-MANAGER",
-          "referenceLocator": "pkg:github/limechain/omarchy-web3@0.1.0-dev",
+          "referenceLocator": "pkg:github/limechain/omarchy-web3@0.1.0",
           "referenceType": "purl"
         }
       ],
@@ -532,7 +532,7 @@
       "licenseConcluded": "MIT",
       "licenseDeclared": "MIT",
       "name": "limechain-omarchy-web3",
-      "versionInfo": "0.1.0-dev"
+      "versionInfo": "0.1.0"
     },
     {
       "SPDXID": "SPDXRef-Package-multidict",

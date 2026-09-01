@@ -5,7 +5,7 @@
   "version": "0.1.0",
   "author": "LimeChain",
   "license": "MIT",
-  "description": "Non-custodial EVM telemetry and local Anvil controls for Omarchy Quattro.",
+  "description": "Reproducible, non-custodial EVM and Solana workstation with read-only telemetry and guarded local Anvil and Surfpool controls.",
   "kinds": [
     "bar-widget"
   ],
@@ -14,7 +14,7 @@
   },
   "barWidget": {
     "displayName": "Web3 Workstation",
-    "description": "Read-only chain telemetry and fixed local Anvil controls.",
+    "description": "Read-only EVM and Solana telemetry with guarded local Anvil and Surfpool controls.",
     "category": "Development",
     "allowMultiple": false,
     "defaultSection": "right",
