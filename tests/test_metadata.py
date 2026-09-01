@@ -25,15 +25,25 @@ class MetadataTests(unittest.TestCase):
         self.assertIn('[root.cli, "status", "--json"]', qml)
         self.assertIn('[root.cli, "anvil", action]', qml)
         self.assertIn('[root.cli, "surfpool", action]', qml)
+        self.assertIn('[root.cli, "hedera", "open-latest"]', qml)
         self.assertIn('label: "Solana CLI"', qml)
         self.assertIn('label: "Anchor"', qml)
         self.assertIn('visible: !root.anvilActive && root.anvilAction === ""', qml)
         self.assertIn('visible: !root.surfpoolActive && root.surfpoolAction === ""', qml)
         self.assertIn('text: "REMOTE OBSERVER (OPTIONAL)"', qml)
+        self.assertIn('text: "HEDERA OBSERVER"', qml)
         self.assertNotRegex(qml, r'enabled:\s*[!]?root\.anvilActive')
         self.assertNotRegex(qml, r'enabled:\s*[!]?root\.surfpoolActive')
         self.assertNotRegex(qml, r"command:\s*\[\s*\"surfpool\"")
         self.assertNotIn("private", qml.lower())
+
+    def test_hedera_profile_has_no_binary_or_service_payload(self) -> None:
+        lock = json.loads((ROOT / "toolchains" / "hedera-core.lock.json").read_text(encoding="utf-8"))
+        self.assertEqual(lock["platform"], "any")
+        self.assertEqual(lock["artifacts"], [])
+        installer = (ROOT / "scripts" / "install.sh").read_text(encoding="utf-8")
+        self.assertIn("evm-core | solana-core | hedera-core", installer)
+        self.assertNotIn("limechain-web3-hedera.service", installer)
 
     def test_surfpool_service_is_offline_and_non_custodial(self) -> None:
         unit = (ROOT / "systemd" / "limechain-web3-surfpool.service").read_text(encoding="utf-8")

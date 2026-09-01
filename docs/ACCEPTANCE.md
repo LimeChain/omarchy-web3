@@ -73,6 +73,22 @@ limechain-web3 exec solana transfer recipient 1
 limechain-web3 exec anchor test
 ```
 
+## Lightweight Hedera observer
+
+```bash
+./install --profile hedera-core
+limechain-web3 hedera status
+limechain-web3 hedera latest-block
+limechain-web3 hedera nodes --json
+limechain-web3 hedera account 0.0.3 --json
+limechain-web3 hedera network previewnet
+limechain-web3 hedera network testnet
+```
+
+Confirm installation downloads no Hedera artifact and creates no service. Capture the panel on a small machine and verify Testnet is the default, switching shows a pending state, block and consensus-node data refresh, and the latest-block action opens the matching HashScan network. Confirm malformed account and transaction identifiers are refused before a request, redirects fail closed, output omits account key material and transfer lists, and no request uses POST.
+
+Do not install or start Solo as part of this profile. A future optional Solo lab requires a separate acceptance matrix for resource limits, cleanup, isolation, and all signing material it creates.
+
 ## Update and uninstall
 
 1. Update from the previous tagged release and confirm config, menu placement, and projects remain unchanged.

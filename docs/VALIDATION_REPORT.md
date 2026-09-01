@@ -54,6 +54,22 @@ The full-workstation regression pass also found that the first managed-plugin re
 
 The active Quattro plugin was then updated after the physical session was unlocked. `doctor --json`, Omarchy plugin validation, fixed Solana read-only queries, Surfpool control, and the guarded Anchor workflow all passed from the installed user-scoped paths.
 
+## Hedera lightweight profile validation
+
+Date: 2026-09-01
+
+The `hedera-core` candidate was validated on the same Omarchy x86-64 host from an isolated temporary source tree and user-scoped install prefix. The active `v0.1.0` marketplace-review checkout was not modified.
+
+- The complete local regression suite passed: lock/SBOM verification, 15 CLI and security tests, and multi-profile install/reinstall/uninstall lifecycle.
+- The profile lock is architecture-neutral and contains zero artifacts. Isolated installation downloaded no Hedera binary, created no Hedera service, and passed official `omarchy plugin validate`.
+- The guarded Python client reached the official Testnet and Previewnet Mirror Node endpoints using the host's system CA store.
+- Live block, consensus-node, and account lookups passed. Testnet reported a current block, seven consensus nodes, and HAPI `0.76.1` during the run.
+- Network switching returned to Testnet after validation. Invalid path-like account input was refused before any request.
+- Curated account output omitted the upstream account-key object; transaction transfer lists are likewise not forwarded by the wrapper.
+- No Solo, Docker, Kubernetes, account funding, signing, or transaction submission path was installed or started.
+
+Active-panel visual inspection remains required before merging this branch. The manifest and QML entry point passed Omarchy's validator, but the candidate panel was intentionally not loaded over the marketplace-review commit during this isolated pass.
+
 The first service draft used `MemoryDenyWriteExecute=true`. Live startup correctly revealed that Surfpool's Solana BPF loader needs executable-memory permission for `mprotect`; the service failed closed before opening an RPC socket. That single incompatible directive was removed while all network, home, privilege, namespace, and capability controls remained in place. A regression test retains the fixed offline and non-custodial service arguments.
 
 ## Incident and correction

@@ -20,6 +20,7 @@ ROOT = Path(__file__).resolve().parents[1]
 LOCKS = {
     "evm-core": ROOT / "toolchains" / "evm-core.lock.json",
     "solana-core": ROOT / "toolchains" / "solana-core.lock.json",
+    "hedera-core": ROOT / "toolchains" / "hedera-core.lock.json",
 }
 PYTHON_LOCK = ROOT / "toolchains" / "python-requirements.lock"
 SHA256 = re.compile(r"^[0-9a-f]{64}$")
@@ -27,6 +28,7 @@ TRUSTED_HOSTS = {"github.com", "nodejs.org"}
 EXPECTED_ARTIFACTS = {
     "evm-core": {"foundry", "node", "bun", "echidna", "uv", "solc"},
     "solana-core": {"surfpool", "agave", "anchor", "platform-tools"},
+    "hedera-core": set(),
 }
 
 
@@ -38,8 +40,9 @@ def verify_lock(profile: str, path: Path, download: bool) -> None:
     lock = json.loads(path.read_text(encoding="utf-8"))
     if lock.get("schema") != 1 or lock.get("profile") != profile:
         fail(f"unexpected lockfile schema or profile: {path}")
-    if lock.get("platform") != "linux-x86_64":
-        fail(f"lockfile must target linux-x86_64: {path}")
+    expected_platform = "any" if profile == "hedera-core" else "linux-x86_64"
+    if lock.get("platform") != expected_platform:
+        fail(f"lockfile must target {expected_platform}: {path}")
 
     ids: set[str] = set()
     commands: set[str] = set()

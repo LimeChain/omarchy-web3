@@ -1,7 +1,7 @@
 ---
 name: limechain-web3
-description: Safely build, inspect, compile, test, fuzz, statically analyze, and run local EVM or offline Solana projects on an Omarchy LimeChain Web3 Workstation. Use this skill for Solidity, Foundry, Forge, Cast, Anvil, Slither, Echidna, Surfpool, read-only Solana CLI, guarded Anchor compilation, local RPC, contract scaffolding, local chains, or read-only chain inspection on Omarchy. Keep all work non-custodial: never handle keys or seed phrases, sign or submit transactions, broadcast deployments, or deploy to mainnet.
-compatibility: Requires the `limechain-web3` command and an installed `evm-core` or `solana-core` profile.
+description: Safely build, inspect, compile, test, fuzz, statically analyze, and run local EVM or offline Solana projects, plus inspect Hedera through a lightweight read-only profile, on an Omarchy LimeChain Web3 Workstation. Use this skill for Solidity, Foundry, Forge, Cast, Anvil, Slither, Echidna, Surfpool, read-only Solana CLI, guarded Anchor compilation, Hedera Mirror Node queries, local RPC, contract scaffolding, local chains, or read-only chain inspection on Omarchy. Keep all work non-custodial: never handle keys or seed phrases, sign or submit transactions, broadcast deployments, or deploy to mainnet.
+compatibility: Requires the `limechain-web3` command and an installed `evm-core`, `solana-core`, or `hedera-core` profile.
 ---
 
 # LimeChain Web3 Workstation
@@ -31,7 +31,7 @@ Refuse requests that require any of the following:
 
 When refusing, state the exact boundary and offer a safe alternative such as a local account-free Anvil instance, a dependency-free unit test, a fuzz test, a dry simulation, or a read-only `cast call`.
 
-These instructions guide agent behavior; they are not an operating-system sandbox. The Quickshell plugin is also unsandboxed, so do not ask it to access anything outside its fixed status and Anvil-control commands.
+These instructions guide agent behavior; they are not an operating-system sandbox. The Quickshell plugin is also unsandboxed, so do not ask it to access anything outside its fixed status, local-runtime controls, and Hedera observer commands.
 
 ## Supported workflows
 
@@ -112,6 +112,21 @@ Do not invoke or emulate `anchor init`, `new`, `test`, `localnet`, `deploy`, `ke
 
 Use `limechain-web3 fork --rpc-url <credential-free-public-url>` only when the user explicitly supplies or approves that public endpoint. The command must remain foreground-bound, loopback-only, silent, and account-free. Never convert a provider key into a URL or retrieve a provider credential from the environment.
 
+### Lightweight Hedera inspection
+
+Use only the fixed `limechain-web3 hedera` commands. Testnet is the default; switch to Mainnet or Previewnet only when the user's task requires it.
+
+```bash
+limechain-web3 hedera status
+limechain-web3 hedera latest-block
+limechain-web3 hedera nodes --json
+limechain-web3 hedera account 0.0.3 --json
+limechain-web3 hedera transaction '0.0.3@1750000000.000000001' --json
+limechain-web3 hedera network testnet
+```
+
+The profile is a Mirror Node observer, not a local Hedera network. Do not install, start, or emulate Solo; do not create or fund accounts; do not call a consensus-node submission endpoint. Treat any future Solo integration as a separate profile requiring an explicit resource and credential-boundary review against a released upstream version.
+
 ### Read-only chain inspection
 
 Permitted Cast operations include read-only calls such as `call`, `block`, `code`, `storage`, `logs`, and `chain-id`. Confirm the target chain before interpreting results. Prefer testnets unless the user explicitly asks to inspect mainnet state; inspecting state is allowed, deploying or submitting is not.
@@ -123,7 +138,7 @@ Conclude with:
 - Files changed or created.
 - Verified tool versions used.
 - Compile, unit-test, fuzz, Slither, and Echidna results that were actually run.
-- Whether local Anvil, Surfpool, or a local fork remains running.
+- Whether local Anvil, Surfpool, or a local fork remains running, and which Hedera network was inspected.
 - Any skipped check and the concrete reason it was skipped.
 
 Do not claim a test or analysis passed unless its command completed successfully.

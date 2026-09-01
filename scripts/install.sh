@@ -14,7 +14,7 @@ ENABLE_PLUGIN=1
 
 usage() {
   cat <<'USAGE'
-Usage: ./install [--profile evm-core|solana-core] [--skip-toolchains] [--skip-omarchy] [--no-enable-plugin]
+Usage: ./install [--profile evm-core|solana-core|hedera-core] [--skip-toolchains] [--skip-omarchy] [--no-enable-plugin]
 
 Installs an additive, user-scoped Web3 workstation without elevated privileges or system package changes.
 USAGE
@@ -72,8 +72,8 @@ while (( $# > 0 )); do
 done
 
 case "$PROFILE" in
-evm-core | solana-core) ;;
-*) lcw3_fail "supported profiles: evm-core, solana-core" ;;
+evm-core | solana-core | hedera-core) ;;
+*) lcw3_fail "supported profiles: evm-core, solana-core, hedera-core" ;;
 esac
 
 for path_info in \
@@ -90,7 +90,9 @@ done
 
 if (( ! SKIP_OMARCHY )); then
   [[ $(uname -s) == "Linux" ]] || lcw3_fail "Omarchy installation requires Linux"
-  [[ $(uname -m) == "x86_64" ]] || lcw3_fail "the profile lockfiles currently support x86_64 only"
+  if [[ $PROFILE != "hedera-core" ]]; then
+    [[ $(uname -m) == "x86_64" ]] || lcw3_fail "the EVM and Solana profile lockfiles currently support x86_64 only"
+  fi
   command -v omarchy >/dev/null || lcw3_fail "Omarchy CLI is not available"
   command -v pacman >/dev/null || lcw3_fail "pacman is not available"
   command -v systemctl >/dev/null || lcw3_fail "systemctl is not available"
@@ -166,11 +168,13 @@ lcw3_copy_tree "$SOURCE_DIR/skill/limechain-web3" "$LCW3_SKILL_ROOT"
 install -m 0644 /dev/null "$LCW3_SKILL_ROOT/.limechain-web3-managed"
 
 if (( ! SKIP_TOOLCHAINS )); then
-  for command in curl sha256sum bsdtar; do
-    command -v "$command" >/dev/null || lcw3_fail "toolchain installation requires: $command"
-  done
-
   lock="$SOURCE_DIR/toolchains/$PROFILE.lock.json"
+  [[ -f $lock ]] || lcw3_fail "profile lockfile is missing: $lock"
+  if (( $(jq '.artifacts | length' "$lock") > 0 )); then
+    for command in curl sha256sum bsdtar; do
+      command -v "$command" >/dev/null || lcw3_fail "toolchain installation requires: $command"
+    done
+  fi
   cache_dir="$LCW3_CACHE_HOME/limechain-web3/downloads"
   toolchain_root="$LCW3_APP_ROOT/toolchains/installed"
   raw_bin="$LCW3_APP_ROOT/raw-bin"
@@ -287,11 +291,16 @@ evm-core)
 solana-core)
   unit_name="limechain-web3-surfpool.service"
   ;;
+hedera-core)
+  unit_name=""
+  ;;
 esac
-unit_source="$SOURCE_DIR/systemd/$unit_name"
-unit_target="$LCW3_SYSTEMD_ROOT/$unit_name"
-sed "s|@APP_ROOT@|$escaped_root|g" "$unit_source" >"$unit_target"
-chmod 0644 "$unit_target"
+if [[ -n $unit_name ]]; then
+  unit_source="$SOURCE_DIR/systemd/$unit_name"
+  unit_target="$LCW3_SYSTEMD_ROOT/$unit_name"
+  sed "s|@APP_ROOT@|$escaped_root|g" "$unit_source" >"$unit_target"
+  chmod 0644 "$unit_target"
+fi
 
 existing_profiles='[]'
 if [[ -f $LCW3_INSTALL_STATE ]]; then

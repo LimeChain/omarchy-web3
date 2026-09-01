@@ -10,6 +10,7 @@ import threading
 import unittest
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+from urllib.parse import urlsplit
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -32,6 +33,64 @@ class RpcHandler(BaseHTTPRequestHandler):
             "getGenesisHash": "LCW3LocalGenesisHash",
         }
         body = json.dumps({"jsonrpc": "2.0", "id": request["id"], "result": results[request["method"]]}).encode()
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+    def do_GET(self) -> None:  # noqa: N802
+        path = urlsplit(self.path).path
+        if path == "/blocks":
+            payload = {
+                "blocks": [
+                    {
+                        "number": 123456,
+                        "hapi_version": "0.66.0",
+                        "timestamp": {"from": "1750000000.000000000", "to": "1750000001.000000000"},
+                    }
+                ],
+                "links": {"next": None},
+            }
+        elif path == "/network/nodes":
+            payload = {
+                "nodes": [
+                    {
+                        "node_id": 0,
+                        "node_account_id": "0.0.3",
+                        "description": "test node",
+                        "service_endpoints": [{"domain_name": "node.example", "port": 50211}],
+                    }
+                ],
+                "links": {"next": None},
+            }
+        elif path.startswith("/accounts/"):
+            payload = {
+                "account": "0.0.123",
+                "balance": {"balance": 5000},
+                "deleted": False,
+                "ethereum_nonce": 0,
+                "memo": "fixture",
+                "key": {"_type": "ED25519", "key": "must-not-be-forwarded"},
+            }
+        elif path.startswith("/transactions/"):
+            payload = {
+                "transactions": [
+                    {
+                        "transaction_id": "0.0.123-1750000000-000000001",
+                        "consensus_timestamp": "1750000001.000000001",
+                        "result": "SUCCESS",
+                        "name": "CRYPTOTRANSFER",
+                        "charged_tx_fee": 100000,
+                        "node": "0.0.3",
+                        "transfers": [{"account": "0.0.123", "amount": -1}],
+                    }
+                ]
+            }
+        else:
+            self.send_error(404)
+            return
+        body = json.dumps(payload).encode()
         self.send_response(200)
         self.send_header("Content-Type", "application/json")
         self.send_header("Content-Length", str(len(body)))
@@ -153,6 +212,7 @@ class CliTests(unittest.TestCase):
         self.assertEqual(report["local"]["gas_gwei"], 1.0)
         self.assertFalse(report["chain"]["ok"])
         self.assertFalse(report["solana"]["installed"])
+        self.assertFalse(report["hedera"]["installed"])
 
     def test_solana_rpc_status(self) -> None:
         server = ThreadingHTTPServer(("127.0.0.1", 0), RpcHandler)
@@ -170,7 +230,7 @@ class CliTests(unittest.TestCase):
             server.server_close()
         self.assertEqual(result.returncode, 0, result.stderr)
         report = json.loads(result.stdout)
-        self.assertEqual(report["schema"], 2)
+        self.assertEqual(report["schema"], 3)
         self.assertFalse(report["local"]["installed"])
         self.assertTrue(report["solana"]["installed"])
         self.assertTrue(report["solana"]["ok"])
@@ -180,6 +240,53 @@ class CliTests(unittest.TestCase):
         self.assertEqual(report["solana"]["cli_version"], "4.2.2")
         self.assertEqual(report["solana"]["anchor_version"], "1.1.2")
         self.assertEqual(report["solana"]["mode"], "offline")
+        self.assertFalse(report["hedera"]["installed"])
+
+    def test_hedera_profile_is_lightweight_and_read_only(self) -> None:
+        server = ThreadingHTTPServer(("127.0.0.1", 0), RpcHandler)
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        try:
+            self.env.update(
+                {
+                    "LCW3_LOCK_FILE": str(ROOT / "toolchains" / "hedera-core.lock.json"),
+                    "LCW3_TESTING": "1",
+                    "LCW3_HEDERA_TEST_BASE_URL": f"http://127.0.0.1:{server.server_port}",
+                }
+            )
+            status = self.run_cli("status", "--json")
+            network = self.run_cli("hedera", "network", "mainnet")
+            account = self.run_cli("hedera", "account", "0.0.123", "--json")
+            transaction = self.run_cli(
+                "hedera", "transaction", "0.0.123@1750000000.000000001", "--json"
+            )
+            nodes = self.run_cli("hedera", "nodes", "--json")
+            invalid = self.run_cli("hedera", "account", "../../etc/passwd")
+        finally:
+            server.shutdown()
+            server.server_close()
+
+        self.assertEqual(status.returncode, 0, status.stderr)
+        report = json.loads(status.stdout)
+        self.assertEqual(report["schema"], 3)
+        self.assertTrue(report["hedera"]["installed"])
+        self.assertTrue(report["hedera"]["ok"])
+        self.assertEqual(report["hedera"]["network"], "testnet")
+        self.assertEqual(report["hedera"]["block_height"], 123456)
+        self.assertEqual(report["hedera"]["node_count"], 1)
+        self.assertFalse(report["local"]["installed"])
+        self.assertFalse(report["solana"]["installed"])
+        self.assertEqual(network.returncode, 0, network.stderr)
+        self.assertEqual(json.loads(self.config.read_text())["hedera"]["network"], "mainnet")
+        account_payload = json.loads(account.stdout)
+        self.assertEqual(account_payload["balance_tinybar"], 5000)
+        self.assertNotIn("key", account.stdout.lower())
+        transaction_payload = json.loads(transaction.stdout)
+        self.assertEqual(transaction_payload["transactions"][0]["result"], "SUCCESS")
+        self.assertNotIn("transfers", transaction.stdout)
+        self.assertEqual(json.loads(nodes.stdout)["nodes"][0]["account_id"], "0.0.3")
+        self.assertEqual(invalid.returncode, 2)
+        self.assertIn("account must be", invalid.stderr)
 
     def test_scaffold_refuses_overwrite(self) -> None:
         destination = self.temp / "counter"

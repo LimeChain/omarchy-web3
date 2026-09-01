@@ -2,7 +2,7 @@
 
 ## Supported use
 
-This project supports compilation, unit tests, fuzzing, static analysis, local account-free EVM RPC execution, offline local Solana RPC execution, guarded keypair-free Anchor compilation, credential-free local forks, and read-only chain inspection.
+This project supports compilation, unit tests, fuzzing, static analysis, local account-free EVM RPC execution, offline local Solana RPC execution, guarded keypair-free Anchor compilation, credential-free local forks, and read-only EVM, Solana, and Hedera inspection.
 
 It does not support keys, seed phrases, signing, transaction submission, wallets, exchanges, or mainnet deployment. Do not report the absence of those features as a vulnerability; report any path that unexpectedly performs one of those actions.
 
@@ -22,8 +22,9 @@ Report vulnerabilities privately through the security-advisory feature of the Gi
 - Anchor builds require `Localnet`, `/dev/null` as the wallet path, a committed `Cargo.lock`, no build hooks, no automatic client generation, and no program-keypair files.
 - The guarded Anchor command injects `--ignore-keys`, `--no-idl`, and `--skip-tools-install`, requires Anchor's pinned compatible SBF platform-tools tree, and reserves every expected `*-keypair.json` output as a temporary `/dev/null` symlink so `cargo-build-sbf` cannot generate a program keypair. The sentinels are removed after every build outcome.
 - The Quickshell plugin invokes only the status command, fixed Anvil/Surfpool controls, and validated explorer opening.
+- The Hedera profile uses only fixed official Mirror Node and HashScan bases, GET requests, bounded responses, curated output fields, and validated identifiers; it installs no runtime and never invokes Solo.
 - Configuration is stored with mode `0600` and rejected if it contains sensitive-looking fields.
 
 These are defense-in-depth controls, not a sandbox. The underlying tools are powerful developer software, and Quickshell plugins run with the user's access.
 
-Cargo dependencies and project build scripts are executable code. Anchor compilation therefore runs with a stripped environment and isolated home, but users must still review project dependencies before building them. See [SOLANA_SECURITY_REVIEW.md](SOLANA_SECURITY_REVIEW.md).
+Cargo dependencies and project build scripts are executable code. Anchor compilation therefore runs with a stripped environment and isolated home, but users must still review project dependencies before building them. See [SOLANA_SECURITY_REVIEW.md](SOLANA_SECURITY_REVIEW.md) and [HEDERA_SECURITY_REVIEW.md](HEDERA_SECURITY_REVIEW.md).

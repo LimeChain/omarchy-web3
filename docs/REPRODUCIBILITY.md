@@ -1,11 +1,12 @@
 # Reproducibility
 
-For this MVP, reproducible means that a clean x86-64 Omarchy Quattro 4.x installation resolves the same declared tool versions and verifies the same artifact bytes before installation.
+For this MVP, reproducible means that a clean Omarchy Quattro 4.x installation resolves the same declared profile inputs and verifies the same artifact bytes before installation. EVM and Solana binary profiles currently target x86-64; the binary-free Hedera profile is architecture-neutral.
 
 ## Inputs
 
 - `toolchains/evm-core.lock.json` pins upstream release URLs and SHA-256 digests.
 - `toolchains/solana-core.lock.json` pins the reviewed Surfpool, Agave CLI, Anchor, and SBF platform-tools release URLs and SHA-256 digests.
+- `toolchains/hedera-core.lock.json` explicitly records that the lightweight profile has no downloaded artifacts and supports any Omarchy architecture.
 - `toolchains/python-requirements.lock` pins the complete Python dependency graph and hashes.
 - `VERSION` identifies the workstation snapshot.
 - `sbom/limechain-web3.spdx.json` records the application and toolchain packages.
@@ -17,6 +18,7 @@ The lock does not claim bit-for-bit reproducibility of Omarchy or Arch Linux its
 ```bash
 jq -e '.schema == 1 and .profile == "evm-core"' toolchains/evm-core.lock.json
 jq -e '.schema == 1 and .profile == "solana-core"' toolchains/solana-core.lock.json
+jq -e '.schema == 1 and .profile == "hedera-core" and .platform == "any" and (.artifacts | length == 0)' toolchains/hedera-core.lock.json
 python3 scripts/verify-lock.py
 python3 scripts/generate-sbom.py --check
 ```

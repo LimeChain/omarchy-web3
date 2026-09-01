@@ -13,7 +13,7 @@
 1. The user reviews and opts into the public Git repository.
 2. The installer verifies every downloaded binary before extraction.
 3. The Quickshell plugin is unsandboxed, so it is kept small and delegates to a fixed CLI.
-4. Remote JSON-RPC services are untrusted. Responses have a short timeout and a 1 MiB size limit.
+4. Remote JSON-RPC and Mirror Node services are untrusted. Responses have a short timeout and a 1 MiB size limit.
 5. Explorer and RPC URLs are untrusted input and are structurally validated.
 6. Agent-skill refusals are behavioral policy, not OS enforcement.
 
@@ -30,6 +30,8 @@
 | Surfpool MCP generating or returning key material | Arbitrary Surfpool subcommands and MCP are refused; the plugin exposes only service controls and read-only health | Upstream capabilities remain available in the raw binary outside the workstation wrapper |
 | Existing config loss | Marker-bounded JSONC modification, native plugin state APIs, idempotent install | Manual edits inside the managed marker are replaced on reinstall |
 | Host exposure of local RPC | Bind Anvil and Surfpool only to `127.0.0.1` | Other processes belonging to the same user can access the RPC |
+| Hedera observer redirected to a hostile host | Compile in the three official Mirror Node bases, reject redirects, and expose no arbitrary endpoint setting | The official public service sees request metadata and could return misleading indexed data |
+| Heavy Hedera local network exhausting a small host | `hedera-core` installs no runtime and never starts Solo, Docker, or Kubernetes | A future optional Solo profile needs a new resource and key-handling review |
 
 ## Out of scope
 
