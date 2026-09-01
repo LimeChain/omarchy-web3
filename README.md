@@ -94,6 +94,11 @@ limechain-web3 hedera account 0.0.3 --json
 limechain-web3 hedera network mainnet
 ```
 
+<p align="center">
+  <img src="docs/assets/quattro-hedera-observer.png" alt="Lightweight Hedera Testnet observer in the Web3 Workstation panel" width="405"><br>
+  <sub>Live Hedera Testnet observer · official Mirror Node · no Solo, Kubernetes, wallet, or signing</sub>
+</p>
+
 The first Anchor build downloads only Cargo dependencies pinned by the sample's `Cargo.lock`. Re-run it with `--offline` to prove the cached build path.
 
 <a href="docs/assets/quattro-forge-test.png">

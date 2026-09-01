@@ -68,7 +68,9 @@ The `hedera-core` candidate was validated on the same Omarchy x86-64 host from a
 - Curated account output omitted the upstream account-key object; transaction transfer lists are likewise not forwarded by the wrapper.
 - No Solo, Docker, Kubernetes, account funding, signing, or transaction submission path was installed or started.
 
-Active-panel visual inspection remains required before merging this branch. The manifest and QML entry point passed Omarchy's validator, but the candidate panel was intentionally not loaded over the marketplace-review commit during this isolated pass.
+The active-panel pass was completed later the same day after the physical session was confirmed unlocked. The installer safely reloaded the plugin, preserved the inactive state of both local services, and the panel rendered fully at 3840×2160 with live Hedera Testnet block, seven-node, HAPI, and latency data. Direct plugin IPC refresh/status returned schema 3 and all three installed profiles.
+
+The coexistence smoke test then started Anvil and Surfpool together while the Hedera observer remained healthy. Anvil block 0, Surfpool slot 0, and a live Hedera Testnet block were visible simultaneously. This pass exposed that Surfpool handles interactive `SIGINT` but did not exit on systemd's default `SIGTERM`, causing Reset to exceed the CLI's ten-second timeout. The unit now uses `KillSignal=SIGINT` with a five-second bounded stop; start/reset/stop was repeated after the correction, and both local services were returned to their original inactive state.
 
 The first service draft used `MemoryDenyWriteExecute=true`. Live startup correctly revealed that Surfpool's Solana BPF loader needs executable-memory permission for `mprotect`; the service failed closed before opening an RPC socket. That single incompatible directive was removed while all network, home, privilege, namespace, and capability controls remained in place. A regression test retains the fixed offline and non-custodial service arguments.
 

@@ -53,6 +53,8 @@ class MetadataTests(unittest.TestCase):
         self.assertIn("ProtectHome=tmpfs", unit)
         self.assertIn("IPAddressDeny=any", unit)
         self.assertIn("IPAddressAllow=localhost", unit)
+        self.assertIn("KillSignal=SIGINT", unit)
+        self.assertIn("TimeoutStopSec=5s", unit)
 
     def test_solana_artifact_and_guard_contract(self) -> None:
         lock = json.loads((ROOT / "toolchains" / "solana-core.lock.json").read_text(encoding="utf-8"))
