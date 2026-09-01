@@ -327,6 +327,6 @@ if (( ! SKIP_OMARCHY )); then
   lcw3_restore_active_user_units
 fi
 
-echo "LimeChain Web3 Workstation installed."
+echo "Web3 Workstation installed."
 echo "Run: limechain-web3 doctor"
 echo "Enter the verified environment with: limechain-web3 shell"

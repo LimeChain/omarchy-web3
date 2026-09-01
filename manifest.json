@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "id": "limechain.web3",
-  "name": "LimeChain Web3 Workstation",
+  "name": "Web3 Workstation",
   "version": "0.1.0",
   "author": "LimeChain",
   "license": "MIT",

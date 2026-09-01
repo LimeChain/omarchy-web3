@@ -1,6 +1,8 @@
 <div align="center">
 
-# ⛓ LimeChain Web3 Workstation
+# ⛓ Web3 Workstation
+
+<sub>by LimeChain</sub>
 
 ### Chain engineering for Omarchy Quattro
 
@@ -16,7 +18,7 @@ Not another price ticker. Not a wallet. Not a signing surface.
 
 <br>
 
-<img src="docs/assets/quattro-surfpool-active.png" alt="LimeChain Web3 Workstation panel running local Anvil and offline Surfpool in Omarchy Quattro" width="420">
+<img src="docs/assets/quattro-surfpool-active.png" alt="Web3 Workstation by LimeChain running local Anvil and offline Surfpool in Omarchy Quattro" width="420">
 
 <sub>Native Quattro panel · Anvil + offline Surfpool healthy · no wallet or key access</sub>
 

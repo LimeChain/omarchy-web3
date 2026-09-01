@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Non-custodial command surface for LimeChain Web3 Workstation."""
+"""Non-custodial command surface for Web3 Workstation by LimeChain."""
 
 from __future__ import annotations
 
