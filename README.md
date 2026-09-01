@@ -41,7 +41,7 @@ Review the repository, then install it through Quattro's native plugin flow:
 omarchy plugin add https://github.com/LimeChain/omarchy-web3.git --enable --yes && ~/.config/omarchy/plugins/limechain.web3/install --profile evm-core
 ```
 
-One command. No fork. No unpinned `curl | bash`. No `sudo`. No blind `yay` bundle.
+One command. No fork. User-scoped installation. No system package changes. No blind AUR bundle.
 
 Add the production-ready Solana profile with the same installer:
 

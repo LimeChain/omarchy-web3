@@ -16,7 +16,7 @@ usage() {
   cat <<'USAGE'
 Usage: ./install [--profile evm-core|solana-core] [--skip-toolchains] [--skip-omarchy] [--no-enable-plugin]
 
-Installs an additive, user-scoped Web3 workstation. It never invokes yay or sudo.
+Installs an additive, user-scoped Web3 workstation without elevated privileges or system package changes.
 USAGE
 }
 
