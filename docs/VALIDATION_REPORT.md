@@ -1,13 +1,14 @@
 # Omarchy Quattro validation report
 
-Date: 2026-08-31
+Initial run: 2026-08-31
+Latest marketplace-hardening rerun: 2026-09-02
 
 ## Tested environment
 
 - Omarchy package: `4.0.2-1`
 - Architecture: `x86_64`
 - Kernel: `7.1.9-arch1-2`
-- Profiles: `evm-core`, `solana-core`
+- Profiles: `evm-core`, `solana-core`, `hedera-core`
 - Installation mode: user-scoped managed plugin on an existing Omarchy workstation
 
 The workstation was rebooted after installation. Post-reboot validation confirmed that the Quattro shell, plugin IPC, then-installed agent skill, systemd unit, verified toolchain, and menu entry survived correctly. The agent skill in that historical build has since been removed from the marketplace lifecycle and made a separate explicit opt-in.
@@ -93,8 +94,26 @@ Live testing exposed that Quattro's shared `Button` component does not visually 
 
 The corrected panel uses mutually exclusive visibility and explicit pending states: stopped shows only **Start local Anvil**; starting shows **Starting...**; active shows only **Stop** and **Reset**. It also separates the account-free local Anvil RPC from the optional remote observer, explains why no remote endpoint is configured by default, and provides a terminal-based setup guide. The live 3840x2160 panel was revalidated with Anvil active: service healthy, RPC healthy, chain ID `31337`, block `0`, and only Stop/Reset visible.
 
-## Remaining release validation
+## Marketplace-hardening exact-commit rerun
 
-Version `0.3.0` adds the marketplace-review hardening described in `MARKETPLACE_REVIEW.md`: separate explicit agent-skill lifecycle, bounded/origin-restricted downloads, malicious-archive preflight, link-free derived artifacts, ownership markers, collision checks, transactional install/uninstall, and failure-injection rollback. Its local security suite passes, but it is not represented by the older live-host results above until the exact final commit is re-run on Omarchy.
+The functional tree at commit `e0ee80b6df7a8c6e544b06c9768dc2674f83ef54` was rerun on 2026-09-02 on the x86-64 Omarchy `4.0.2-1` host with kernel `7.1.9-arch1-2`. This was an existing daily workstation, not a clean-ISO VM. A Btrfs migration snapshot was taken before replacing the experimental `0.2.0` managed copy with an Omarchy-native Git checkout. Destructive live uninstall/purge testing was intentionally not performed on the daily workstation; those paths ran only in the isolated temporary-HOME lifecycle suite.
+
+- The native checkout passed `omarchy plugin validate`, remained clean at the exact commit, loaded as the enabled `limechain.web3` bar widget, and answered Quattro shell IPC.
+- The profile installer completed for `evm-core`, `solana-core`, and `hedera-core`; a repeated EVM install preserved byte-identical Omarchy menu and shell configuration. The final state recorded all three profiles, with no optional agent skill installed.
+- `doctor --json` passed all 44 installed-workstation checks, including every artifact tree manifest, pinned tool version, service unit, native plugin checkout, configuration permissions, and the intentionally absent optional skill.
+- The same exact checkout passed 27 Python CLI/security/supply-chain tests plus the isolated install, repeat-install, update rollback, destructive-remove rollback, normal uninstall, purge uninstall, collision, symlink, and explicit agent-skill lifecycle suite directly on Arch/Omarchy.
+- The EVM sample compiled with Solidity `0.8.36`; two Forge tests passed, including 256 fuzz cases. Slither analyzed one contract with 102 detectors and zero findings. Echidna passed the bounded-counter property after approximately 5,100 calls.
+- Managed Anvil reported chain ID `31337` on `127.0.0.1:8545`, ran with `--accounts 0 --silent`, exposed no key or mnemonic markers in its journal, and passed start/reset/stop.
+- Offline Surfpool served RPC/WebSocket only on `127.0.0.1:8899/8900`, used an in-memory database, `--no-deploy`, zero airdrop, and `/dev/null` as its fixed airdrop keypair path. It had zero external established connections and passed Solana version/slot/epoch plus start/reset/stop.
+- Guarded Anchor online and offline builds produced the same program SHA-256, `6433a5b3c237e44ba0f0a932dc0a107a886301e8590978639f618222edf46bcd`, and left zero `*-keypair.json` files.
+- The lightweight Hedera observer reached official Testnet and Previewnet Mirror Nodes, reported `mode: read-only`, returned live block/seven-node/account data, omitted upstream key and transfer fields, rejected malformed identifiers before a request, and returned to Testnet. It installed zero Hedera artifacts and zero services.
+- Anvil, Surfpool, and the Hedera observer were healthy simultaneously. The only listeners were the declared loopback ports, and both managed services were returned to inactive state after testing.
+- Nine live negative commands—Cast send/private-key, Forge create/broadcast, credential-bearing RPC configuration, Solana transfer, Anchor test, Surfpool MCP, and remote Surfpool start—were refused before upstream execution.
+
+The rerun found and corrected three integration/UX defects before publication: `doctor` incorrectly treated the optional agent skill as required; production update leaked internally resolved `LCW3_*` paths into the child installer; and direct Hedera status omitted the explicit read-only mode present in the combined status schema. Regression coverage was added for all three. A stale crashed-lock marker also caused the installer to fail closed twice before commit; both attempts left no partial app, state, CLI, unit, menu, or transaction files, providing an additional live rollback observation.
+
+Version `0.3.0` now has exact-commit live coverage on an existing Omarchy host for the marketplace-review hardening described in `MARKETPLACE_REVIEW.md`: separate explicit agent-skill lifecycle, bounded/origin-restricted downloads, malicious-archive preflight, link-free derived artifacts, ownership markers, collision checks, transactional install/update rollback, and fail-closed session handling.
+
+## Remaining release validation
 
 Before a public application release, run the documented matrix on a clean VM made from the latest stable Omarchy ISO, repeat it with network access disabled after installation, and test update from a previous signed tag. This existing workstation validation does not claim those clean-ISO checks.
