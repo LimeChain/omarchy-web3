@@ -19,6 +19,8 @@ Run this matrix on a clean x86-64 VM installed from the latest stable Omarchy Qu
 4. Replace a parent component with a symlink and confirm the lifecycle refuses it.
 5. Inject the post-app-commit test failure and confirm the old app, state, CLI link, menu bytes, unit bytes, and prior active/inactive service states are restored.
 6. Modify and add a file to the optional agent skill. Confirm update/removal refuses it, then restore the exact manifest and confirm removal succeeds.
+7. Make the official plugin update mutate the checkout and `shell.json`, then fail; confirm the old checkout and byte-identical shell configuration return.
+8. Make the official plugin removal delete the native checkout and mutate `shell.json`, then fail during rescan; confirm the checkout, shell configuration, workstation files, menu, and prior service states all return.
 
 ## Toolchain smoke test
 

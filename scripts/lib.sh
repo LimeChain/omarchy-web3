@@ -160,3 +160,45 @@ lcw3_copy_tree() {
   mkdir -p "$target"
   cp -a "$source/." "$target/"
 }
+
+lcw3_assert_user_regular_file_or_absent() {
+  local target=$1
+  local label=$2
+  lcw3_assert_managed_path "$target" "$label"
+  if [[ -e $target || -L $target ]]; then
+    [[ -f $target && ! -L $target ]] || lcw3_fail "$label is not a regular file: $target"
+    [[ $(stat -c %u "$target" 2>/dev/null || stat -f %u "$target") == "$UID" ]] \
+      || lcw3_fail "$label belongs to another user: $target"
+  fi
+}
+
+lcw3_restore_regular_file() {
+  local snapshot=$1
+  local target=$2
+  local existed=$3
+  local parent
+  parent=$(dirname -- "$target")
+  if (( existed )); then
+    install -d -m 0700 "$parent"
+    local staged
+    staged=$(mktemp "$parent/.limechain-web3.restore.XXXXXX")
+    cp -p -- "$snapshot" "$staged"
+    python3 -c 'import os,sys; os.replace(sys.argv[1], sys.argv[2])' "$staged" "$target"
+  elif [[ -e $target || -L $target ]]; then
+    [[ -f $target || -L $target ]] || lcw3_fail "refusing to remove unexpected rollback collision: $target"
+    rm -f -- "$target"
+  fi
+}
+
+lcw3_snapshot_user_tree() {
+  local source=$1
+  local destination=$2
+  [[ -d $source && ! -L $source ]] || lcw3_fail "snapshot source is not a regular directory: $source"
+  [[ ! -e $destination && ! -L $destination ]] || lcw3_fail "snapshot destination already exists: $destination"
+  local foreign special
+  foreign=$(find "$source" -xdev ! -user "$UID" -print -quit)
+  [[ -z $foreign ]] || lcw3_fail "snapshot source contains foreign-owned content: $foreign"
+  special=$(find "$source" -xdev -mindepth 1 ! -type d ! -type f ! -type l -print -quit)
+  [[ -z $special ]] || lcw3_fail "snapshot source contains special content: $special"
+  cp -a -- "$source" "$destination"
+}

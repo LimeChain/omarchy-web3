@@ -170,6 +170,10 @@ staged_units="$transaction/systemd"
 backup_units="$transaction/previous-systemd"
 menu_backup="$transaction/previous-menu"
 menu_existed=0
+shell_config="$LCW3_CONFIG_HOME/omarchy/shell.json"
+shell_config_backup="$transaction/previous-shell.json"
+shell_config_existed=0
+shell_config_snapshot_ready=0
 app_replaced=0
 state_replaced=0
 units_replaced=0
@@ -225,7 +229,12 @@ cleanup_transaction() {
     else
       rm -f "$LCW3_MENU_FILE"
     fi
+    if (( shell_config_snapshot_ready )); then
+      lcw3_restore_regular_file "$shell_config_backup" "$shell_config" "$shell_config_existed"
+    fi
     if (( ! SKIP_OMARCHY )); then
+      omarchy-shell shell reloadConfig >/dev/null 2>&1 || true
+      omarchy-shell shell rescanPlugins >/dev/null 2>&1 || true
       systemctl --user daemon-reload >/dev/null 2>&1 || true
       lcw3_restore_active_user_units >/dev/null 2>&1 || true
     fi
@@ -401,6 +410,12 @@ chmod 0600 "$staged_state"
 
 menu_file=$LCW3_MENU_FILE
 lcw3_assert_managed_path "$menu_file" "Omarchy menu file"
+lcw3_assert_user_regular_file_or_absent "$shell_config" "Omarchy shell configuration"
+if [[ -f $shell_config ]]; then
+  cp -p -- "$shell_config" "$shell_config_backup"
+  shell_config_existed=1
+fi
+shell_config_snapshot_ready=1
 if [[ -f $menu_file && ! -L $menu_file ]]; then
   menu_begin_count=$(grep -Fc '// BEGIN limechain.web3 (managed by limechain-web3)' "$menu_file" || true)
   menu_end_count=$(grep -Fc '// END limechain.web3' "$menu_file" || true)

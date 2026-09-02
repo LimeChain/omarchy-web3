@@ -93,6 +93,16 @@ class MetadataTests(unittest.TestCase):
         self.assertLess(installer.index("lcw3_require_unlocked_session"), installer.index("# Commit begins"))
         self.assertGreater(installer.rindex("omarchy-restart-shell"), installer.index("# Commit begins"))
 
+    def test_update_and_uninstall_snapshot_omarchy_owned_state(self) -> None:
+        updater = (ROOT / "scripts" / "update.sh").read_text(encoding="utf-8")
+        uninstaller = (ROOT / "scripts" / "uninstall.sh").read_text(encoding="utf-8")
+        self.assertLess(updater.index("lcw3_require_unlocked_session"), updater.index("omarchy plugin update"))
+        self.assertIn('lcw3_snapshot_user_tree "$plugin_root" "$transaction/plugin"', updater)
+        self.assertIn('lcw3_restore_regular_file "$transaction/shell.json"', updater)
+        self.assertIn('lcw3_snapshot_user_tree "$LCW3_PLUGIN_ROOT" "$transaction/native-plugin"', uninstaller)
+        self.assertIn('mv "$transaction/native-plugin" "$LCW3_PLUGIN_ROOT"', uninstaller)
+        self.assertIn('lcw3_restore_regular_file "$transaction/shell.json"', uninstaller)
+
 
 if __name__ == "__main__":
     unittest.main()

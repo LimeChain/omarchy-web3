@@ -99,7 +99,64 @@ fi
 [[ -L $LCW3_BIN_HOME/limechain-web3 ]]
 jq -e '.schema == 3 and .profile == "hedera-core"' "$LCW3_INSTALL_STATE" >/dev/null
 
-"$LCW3_BIN_HOME/limechain-web3" uninstall
+# Convert the isolated managed test copy into the shape of an Omarchy-native
+# Git checkout, then prove that update and uninstall restore both the checkout
+# and Omarchy's exact shell state when the official command fails after mutation.
+python3 -c 'import shutil,sys; shutil.rmtree(sys.argv[1])' "$LCW3_PLUGIN_ROOT"
+mkdir -p "$LCW3_PLUGIN_ROOT/.git" "$TEST_ROOT/fake-omarchy/shell"
+printf '%s\n' original-plugin >"$LCW3_PLUGIN_ROOT/rollback-proof"
+printf '%s\n' shell >"$TEST_ROOT/fake-omarchy/shell/shell.qml"
+shell_config="$LCW3_CONFIG_HOME/omarchy/shell.json"
+printf '%s\n' '{"version":1,"plugins":["limechain.web3"],"proof":"original"}' >"$shell_config"
+cp "$shell_config" "$TEST_ROOT/original-shell.json"
+
+cat >"$fake_bin/omarchy" <<'OMARCHY'
+#!/bin/bash
+set -euo pipefail
+case "${1:-} ${2:-}" in
+"plugin update")
+  printf '%s\n' changed-plugin >"$LCW3_PLUGIN_ROOT/rollback-proof"
+  printf '%s\n' '{"version":1,"proof":"changed-by-update"}' >"$LCW3_CONFIG_HOME/omarchy/shell.json"
+  exit 41
+  ;;
+"plugin remove")
+  printf '%s\n' '{"version":1,"proof":"changed-by-remove"}' >"$LCW3_CONFIG_HOME/omarchy/shell.json"
+  python3 -c 'import shutil,sys; shutil.rmtree(sys.argv[1])' "$LCW3_PLUGIN_ROOT"
+  [[ ${LCW3_TEST_REMOVE_FAIL:-0} == 0 ]] || exit 42
+  ;;
+*)
+  exit 43
+  ;;
+esac
+OMARCHY
+cat >"$fake_bin/omarchy-shell" <<'OMARCHY_SHELL'
+#!/bin/bash
+exit 0
+OMARCHY_SHELL
+cat >"$fake_bin/omarchy-restart-shell" <<'OMARCHY_RESTART'
+#!/bin/bash
+exit 0
+OMARCHY_RESTART
+chmod 0755 "$fake_bin/omarchy" "$fake_bin/omarchy-shell" "$fake_bin/omarchy-restart-shell"
+
+if LCW3_TEST_LOCK_STATUS=1 OMARCHY_PATH="$TEST_ROOT/fake-omarchy" PATH="$fake_bin:$PATH" \
+  "$LCW3_BIN_HOME/limechain-web3" update >/dev/null 2>&1; then
+  echo "failed native update unexpectedly succeeded" >&2
+  exit 1
+fi
+[[ $(<"$LCW3_PLUGIN_ROOT/rollback-proof") == original-plugin ]]
+cmp "$TEST_ROOT/original-shell.json" "$shell_config"
+
+if LCW3_TEST_REMOVE_FAIL=1 OMARCHY_PATH="$TEST_ROOT/fake-omarchy" PATH="$fake_bin:$PATH" \
+  "$LCW3_BIN_HOME/limechain-web3" uninstall >/dev/null 2>&1; then
+  echo "partially destructive native uninstall unexpectedly succeeded" >&2
+  exit 1
+fi
+[[ -f $LCW3_APP_ROOT/VERSION ]]
+[[ $(<"$LCW3_PLUGIN_ROOT/rollback-proof") == original-plugin ]]
+cmp "$TEST_ROOT/original-shell.json" "$shell_config"
+
+OMARCHY_PATH="$TEST_ROOT/fake-omarchy" PATH="$fake_bin:$PATH" "$LCW3_BIN_HOME/limechain-web3" uninstall
 
 [[ ! -e $LCW3_APP_ROOT ]]
 [[ ! -e $LCW3_PLUGIN_ROOT ]]

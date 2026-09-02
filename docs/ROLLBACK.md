@@ -2,9 +2,9 @@
 
 ## Update
 
-`limechain-web3 update` asks Omarchy to fast-forward the Git-managed plugin, validates the new manifest, and reruns the installer. Before touching the active workstation, the installer downloads and verifies bounded artifacts, preflights archives, builds the replacement application, prepares state and service files, and validates the native plugin.
+`limechain-web3 update` first requires an unlocked session, snapshots the current Git-managed plugin checkout and Omarchy `shell.json`, asks Omarchy to fast-forward the plugin, validates the new manifest, and reruns the installer. Before touching the active workstation, the installer downloads and verifies bounded artifacts, preflights archives, builds the replacement application, prepares state and service files, and validates the native plugin. If any later step fails, the prior checkout and exact shell configuration are restored before the plugin is rescanned.
 
-The commit phase keeps local backups of the previous application, state, marked service units, CLI link state, and menu. Any failure during commit, daemon reload, plugin rescan, or shell restart restores those backups and restarts services that were active before the attempt. The verified cache is outside the rollback set by design: a failed install may leave only size- and checksum-validated cache bytes.
+The commit phase keeps local backups of the previous application, state, marked service units, CLI link state, menu, and Omarchy shell configuration. Any failure during commit, daemon reload, plugin rescan, or shell restart restores those backups and restarts services that were active before the attempt. The verified cache is outside the rollback set by design: a failed install may leave only size- and checksum-validated cache bytes.
 
 ## Uninstall
 
@@ -12,7 +12,7 @@ The commit phase keeps local backups of the previous application, state, marked 
 
 `limechain-web3 uninstall --purge` also removes `~/.config/limechain-web3` and `~/.cache/limechain-web3`.
 
-The removal set is first moved into a private transaction directory. If a local removal step fails, files and the menu are restored and previously active services are restarted. After Omarchy confirms removal of its own checkout, the transaction is deleted.
+The removal set is first moved into a private transaction directory. The native plugin checkout and exact Omarchy shell configuration are snapshotted before the official removal command. If any removal or rescan step fails—even after Omarchy deleted its Git checkout—the checkout, shell state, files, and menu are restored and previously active services are restarted. After Omarchy confirms removal, the private snapshots are deleted.
 
 The normal uninstall is recoverable by reinstalling the same tagged repository; the preserved cache avoids downloading unchanged verified artifacts. A purge is not recoverable unless the configuration was backed up separately.
 

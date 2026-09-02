@@ -60,9 +60,10 @@ The profile installer owns only these paths and refuses pre-existing unmarked co
 | Verified cache | `~/.cache/limechain-web3` | Preserved; removed by `--purge` |
 | Local services | Two marked files under `~/.config/systemd/user` | Removed |
 | Omarchy menu | One bounded `limechain.web3` managed block | Removed |
+| Omarchy shell state | Plugin enablement/placement in `~/.config/omarchy/shell.json`, changed only through official Omarchy commands | Removed through Omarchy; snapshotted and restored if lifecycle fails |
 | Plugin checkout | `~/.config/omarchy/plugins/limechain.web3` is managed by Omarchy | Removed through Omarchy |
 
-Every mutable application change is staged before commit. If validation, service reload, or shell reload fails, the installer restores the prior app, state, units, command link, and menu. Download cache entries may remain, but are byte-bounded and accepted only when their locked size and SHA-256 match.
+Every mutable application change is staged before commit. If validation, service reload, or shell reload fails, the installer restores the prior app, state, units, command link, menu, and Omarchy shell state. Update also snapshots the native plugin checkout before Omarchy fast-forwards it; uninstall snapshots that checkout before Omarchy removes it. Download cache entries may remain, but are byte-bounded and accepted only when their locked size and SHA-256 match.
 
 > [!NOTE]
 > Security ownership markers begin with `0.3.0`. An experimental `0.1.x`/`0.2.x` workstation is intentionally not auto-adopted. Before upgrading that pre-marketplace build, use its installed `limechain-web3 uninstall --purge`, update the Omarchy plugin, then perform a clean `0.3.0` profile install.

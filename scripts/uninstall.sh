@@ -28,6 +28,7 @@ cache_root="$LCW3_CACHE_HOME/limechain-web3"
 state_root=$(dirname -- "$LCW3_INSTALL_STATE")
 cli_link="$LCW3_BIN_HOME/limechain-web3"
 menu_file=$LCW3_MENU_FILE
+shell_config="$LCW3_CONFIG_HOME/omarchy/shell.json"
 
 for path_info in \
   "$LCW3_APP_ROOT:application root" \
@@ -41,6 +42,7 @@ done
 lcw3_assert_safe_path "$cli_link" "command link"
 lcw3_assert_managed_path "$(dirname -- "$cli_link")" "command root"
 lcw3_assert_managed_path "$menu_file" "Omarchy menu file"
+lcw3_assert_user_regular_file_or_absent "$shell_config" "Omarchy shell configuration"
 
 [[ -d $LCW3_APP_ROOT && ! -L $LCW3_APP_ROOT ]] || lcw3_fail "managed application root is missing"
 lcw3_require_owner_marker "$LCW3_APP_ROOT" "application-root"
@@ -103,6 +105,21 @@ app_parent=$(dirname -- "$LCW3_APP_ROOT")
 transaction=$(mktemp -d "$app_parent/.limechain-web3.uninstall.XXXXXX")
 chmod 0700 "$transaction"
 mkdir -p "$transaction/systemd"
+cleanup_uninstall_snapshot() {
+  local status=$?
+  trap - EXIT INT TERM
+  [[ ! -e $transaction ]] || python3 -c 'import shutil,sys; shutil.rmtree(sys.argv[1])' "$transaction"
+  exit "$status"
+}
+trap cleanup_uninstall_snapshot EXIT INT TERM
+shell_config_existed=0
+if [[ -f $shell_config ]]; then
+  cp -p -- "$shell_config" "$transaction/shell.json"
+  shell_config_existed=1
+fi
+if [[ $plugin_kind == omarchy-native ]]; then
+  lcw3_snapshot_user_tree "$LCW3_PLUGIN_ROOT" "$transaction/native-plugin"
+fi
 menu_existed=0
 if [[ -f $menu_file && ! -L $menu_file ]]; then
   menu_begin_count=$(grep -Fc '// BEGIN limechain.web3 (managed by limechain-web3)' "$menu_file" || true)
@@ -125,6 +142,9 @@ rollback_uninstall() {
     [[ ! -e $transaction/state ]] || mv "$transaction/state" "$state_root"
     [[ ! -e $transaction/cli ]] || mv "$transaction/cli" "$cli_link"
     [[ ! -e $transaction/plugin ]] || mv "$transaction/plugin" "$LCW3_PLUGIN_ROOT"
+    if [[ $plugin_kind == omarchy-native && ! -e $LCW3_PLUGIN_ROOT && ! -L $LCW3_PLUGIN_ROOT ]]; then
+      mv "$transaction/native-plugin" "$LCW3_PLUGIN_ROOT"
+    fi
     [[ ! -e $transaction/config ]] || mv "$transaction/config" "$config_root"
     [[ ! -e $transaction/cache ]] || mv "$transaction/cache" "$cache_root"
     local unit
@@ -134,6 +154,11 @@ rollback_uninstall() {
     if (( menu_existed )); then
       install -d -m 0700 "$(dirname -- "$menu_file")"
       cp -p "$transaction/menu" "$menu_file"
+    fi
+    lcw3_restore_regular_file "$transaction/shell.json" "$shell_config" "$shell_config_existed"
+    if command -v omarchy-shell >/dev/null; then
+      omarchy-shell shell reloadConfig >/dev/null 2>&1 || true
+      omarchy-shell shell rescanPlugins >/dev/null 2>&1 || true
     fi
     if command -v systemctl >/dev/null; then
       systemctl --user daemon-reload >/dev/null 2>&1 || true
