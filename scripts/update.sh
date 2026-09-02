@@ -53,7 +53,27 @@ if [[ -d $plugin_root/.git ]] && command -v omarchy >/dev/null; then
     profile=$(jq -r 'if (.profiles | type) == "array" and (.profiles | length) > 0 then .profiles[0] elif .profile then .profile else "evm-core" end' "$LCW3_INSTALL_STATE")
   fi
   # One transactional installer run refreshes every profile recorded in state.
-  "$plugin_root/install" --profile "$profile" "$@"
+  if [[ ${LCW3_TESTING:-0} == 1 ]]; then
+    "$plugin_root/install" --profile "$profile" "$@"
+  else
+    # lcw3_paths exports its resolved paths for this lifecycle process. They
+    # are internal state, not user-authorized production overrides, so do not
+    # leak them into the fresh installer process whose own guard must see a
+    # clean environment and derive the same canonical paths independently.
+    env \
+      -u LCW3_HOME \
+      -u LCW3_DATA_HOME \
+      -u LCW3_CONFIG_HOME \
+      -u LCW3_STATE_HOME \
+      -u LCW3_CACHE_HOME \
+      -u LCW3_BIN_HOME \
+      -u LCW3_APP_ROOT \
+      -u LCW3_PLUGIN_ROOT \
+      -u LCW3_SYSTEMD_ROOT \
+      -u LCW3_INSTALL_STATE \
+      -u LCW3_MENU_FILE \
+      "$plugin_root/install" --profile "$profile" "$@"
+  fi
   complete=1
   exit 0
 fi

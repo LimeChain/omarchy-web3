@@ -115,6 +115,9 @@ cat >"$fake_bin/omarchy" <<'OMARCHY'
 set -euo pipefail
 case "${1:-} ${2:-}" in
 "plugin update")
+  if [[ ${LCW3_TEST_UPDATE_SUCCEED:-0} == 1 ]]; then
+    exit 0
+  fi
   printf '%s\n' changed-plugin >"$LCW3_PLUGIN_ROOT/rollback-proof"
   printf '%s\n' '{"version":1,"proof":"changed-by-update"}' >"$LCW3_CONFIG_HOME/omarchy/shell.json"
   exit 41
@@ -138,6 +141,40 @@ cat >"$fake_bin/omarchy-restart-shell" <<'OMARCHY_RESTART'
 exit 0
 OMARCHY_RESTART
 chmod 0755 "$fake_bin/omarchy" "$fake_bin/omarchy-shell" "$fake_bin/omarchy-restart-shell"
+
+# Exercise the installed CLI in a production-shaped, isolated HOME. The
+# update script resolves and exports its internal paths, but the child
+# installer must receive none of those variables or its production guard will
+# reject a legitimate update.
+production_home="$TEST_ROOT/production-home"
+production_app="$production_home/.local/share/limechain-web3"
+production_plugin="$production_home/.config/omarchy/plugins/limechain.web3"
+mkdir -p "$production_app/bin" "$production_app/scripts" "$production_home/.local/bin" "$production_plugin/.git"
+install -m 0755 "$ROOT/bin/limechain-web3" "$production_app/bin/limechain-web3"
+install -m 0755 "$ROOT/scripts/update.sh" "$production_app/scripts/update.sh"
+install -m 0755 "$ROOT/scripts/managed-tree.py" "$production_app/scripts/managed-tree.py"
+install -m 0644 "$ROOT/scripts/lib.sh" "$production_app/scripts/lib.sh"
+ln -s "$production_app/bin/limechain-web3" "$production_home/.local/bin/limechain-web3"
+cat >"$production_plugin/install" <<'PRODUCTION_INSTALL'
+#!/bin/bash
+set -euo pipefail
+for override in LCW3_HOME LCW3_DATA_HOME LCW3_CONFIG_HOME LCW3_STATE_HOME LCW3_CACHE_HOME LCW3_BIN_HOME \
+  LCW3_APP_ROOT LCW3_PLUGIN_ROOT LCW3_SYSTEMD_ROOT LCW3_INSTALL_STATE LCW3_MENU_FILE; do
+  [[ -z ${!override:-} ]] || exit 91
+done
+[[ ${1:-} == "--profile" && ${2:-} == "evm-core" ]]
+touch "$HOME/update-env-clean"
+PRODUCTION_INSTALL
+chmod 0755 "$production_plugin/install"
+env -i \
+  HOME="$production_home" \
+  PATH="$fake_bin:$PATH" \
+  OMARCHY_PATH="$TEST_ROOT/fake-omarchy" \
+  HYPRLAND_INSTANCE_SIGNATURE=limechain-web3-test \
+  LCW3_TEST_LOCK_STATUS=1 \
+  LCW3_TEST_UPDATE_SUCCEED=1 \
+  "$production_home/.local/bin/limechain-web3" update
+[[ -f $production_home/update-env-clean ]]
 
 if LCW3_TEST_LOCK_STATUS=1 OMARCHY_PATH="$TEST_ROOT/fake-omarchy" PATH="$fake_bin:$PATH" \
   "$LCW3_BIN_HOME/limechain-web3" update >/dev/null 2>&1; then
