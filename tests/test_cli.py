@@ -255,6 +255,7 @@ class CliTests(unittest.TestCase):
                 }
             )
             status = self.run_cli("status", "--json")
+            direct_status = self.run_cli("hedera", "status", "--json")
             network = self.run_cli("hedera", "network", "mainnet")
             account = self.run_cli("hedera", "account", "0.0.123", "--json")
             transaction = self.run_cli(
@@ -276,6 +277,10 @@ class CliTests(unittest.TestCase):
         self.assertEqual(report["hedera"]["node_count"], 1)
         self.assertFalse(report["local"]["installed"])
         self.assertFalse(report["solana"]["installed"])
+        self.assertEqual(direct_status.returncode, 0, direct_status.stderr)
+        direct_report = json.loads(direct_status.stdout)
+        self.assertEqual(direct_report["mode"], "read-only")
+        self.assertEqual(direct_report["network"], "testnet")
         self.assertEqual(network.returncode, 0, network.stderr)
         self.assertEqual(json.loads(self.config.read_text())["hedera"]["network"], "mainnet")
         account_payload = json.loads(account.stdout)

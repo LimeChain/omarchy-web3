@@ -420,6 +420,7 @@ def hedera_snapshot(network: str, timeout: float) -> dict[str, Any]:
         raise RuntimeError("Mirror Node returned an unexpected block shape")
     return {
         "ok": True,
+        "mode": "read-only",
         "network": network,
         "mirror_url": selected["mirror_url"],
         "explorer_url": selected["explorer_url"],
@@ -459,6 +460,7 @@ def inactive_hedera_snapshot(reason: str, network: str = "testnet") -> dict[str,
     selected = hedera_network_config(network)
     return {
         "ok": False,
+        "mode": "read-only",
         "network": network,
         "mirror_url": selected["mirror_url"],
         "explorer_url": selected["explorer_url"],
