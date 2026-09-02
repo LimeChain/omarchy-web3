@@ -763,7 +763,34 @@ def command_doctor(args: argparse.Namespace) -> int:
     if "solana-core" in profiles:
         add("surfpool-unit", surfpool_systemd_unit_path().is_file(), str(surfpool_systemd_unit_path()))
     add("shell-plugin", (config_home() / "omarchy" / "plugins" / APP_ID / "manifest.json").is_file(), APP_ID)
-    add("agent-skill", (_home() / ".agents" / "skills" / "limechain-web3" / "SKILL.md").is_file(), "limechain-web3")
+
+    skill_root = _home() / ".agents" / "skills" / "limechain-web3"
+    if not os.path.lexists(skill_root):
+        add("agent-skill", True, "not installed (optional)")
+    else:
+        managed_tree = app_root() / "scripts" / "managed-tree.py"
+        try:
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(managed_tree),
+                    "verify",
+                    "--target",
+                    str(skill_root),
+                    "--boundary",
+                    str(_home()),
+                    "--scope",
+                    "agent-skill",
+                ],
+                capture_output=True,
+                text=True,
+                timeout=5,
+            )
+        except (OSError, subprocess.TimeoutExpired) as exc:
+            add("agent-skill", False, f"verification failed: {exc}")
+        else:
+            detail = "installed and verified" if result.returncode == 0 else (result.stderr.strip() or "verification failed")
+            add("agent-skill", result.returncode == 0, detail)
 
     ok = all(item["ok"] for item in checks)
     report = {"ok": ok, "checks": checks}

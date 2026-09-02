@@ -297,6 +297,23 @@ class CliTests(unittest.TestCase):
         self.assertEqual(second.returncode, 2)
         self.assertIn("refusing to overwrite", second.stderr)
 
+    def test_doctor_treats_agent_skill_as_optional_but_verifies_it_when_present(self) -> None:
+        absent = self.run_cli("doctor", "--json")
+        absent_report = json.loads(absent.stdout)
+        absent_check = next(item for item in absent_report["checks"] if item["name"] == "agent-skill")
+        self.assertTrue(absent_check["ok"])
+        self.assertEqual(absent_check["detail"], "not installed (optional)")
+
+        skill_root = self.temp / ".agents" / "skills" / "limechain-web3"
+        skill_root.mkdir(parents=True)
+        os.chmod(skill_root, 0o700)
+        (skill_root / "SKILL.md").write_text("unmanaged\n", encoding="utf-8")
+        unmanaged = self.run_cli("doctor", "--json")
+        unmanaged_report = json.loads(unmanaged.stdout)
+        unmanaged_check = next(item for item in unmanaged_report["checks"] if item["name"] == "agent-skill")
+        self.assertFalse(unmanaged_check["ok"])
+        self.assertIn("not marked as managed", unmanaged_check["detail"])
+
     def test_anchor_scaffold_and_preflight_are_keypair_free(self) -> None:
         destination = self.temp / "anchor-counter"
         result = self.run_cli("anchor", "scaffold", str(destination))
