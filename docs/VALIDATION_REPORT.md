@@ -10,7 +10,7 @@ Date: 2026-08-31
 - Profiles: `evm-core`, `solana-core`
 - Installation mode: user-scoped managed plugin on an existing Omarchy workstation
 
-The workstation was rebooted after installation. Post-reboot validation confirmed that the Quattro shell, plugin IPC, agent skill, systemd unit, verified toolchain, and menu entry survived correctly.
+The workstation was rebooted after installation. Post-reboot validation confirmed that the Quattro shell, plugin IPC, then-installed agent skill, systemd unit, verified toolchain, and menu entry survived correctly. The agent skill in that historical build has since been removed from the marketplace lifecycle and made a separate explicit opt-in.
 
 ## Results
 
@@ -50,7 +50,7 @@ The guarded developer layer was validated on the same x86-64 Omarchy host from a
 
 Live validation exposed two upstream behaviors that materially changed the guard design. Anchor `1.1.2` hardcodes SBF platform-tools `1.52`, so the initial newer `1.56` candidate was replaced with the compatible pinned artifact instead of overriding Anchor. More importantly, `cargo-build-sbf` generates a program keypair during post-processing even when Anchor receives `--ignore-keys`. The one keypair produced by the discovery run was immediately deleted from the temporary test workspace. The corrected wrapper now reserves every explicit cdylib program's expected keypair output as a temporary `/dev/null` symlink and removes the sentinel on every exit path. A fresh build then confirmed successful bytecode output with no generated keypair.
 
-The full-workstation regression pass also found that the first managed-plugin replacement stopped already-running Anvil and Surfpool units while Omarchy reloaded. The installer now snapshots both user units before any managed update and starts only those that were active after `daemon-reload`; an idempotent update leaves their existing PIDs untouched. A fake-systemd lifecycle regression test verifies that inactive services remain inactive while active services are restored.
+The full-workstation regression pass also found that the first managed-plugin replacement stopped already-running Anvil and Surfpool units while Omarchy reloaded. The installer now snapshots both user units before any managed update and restores only those that were active after `daemon-reload`. A fake-systemd lifecycle regression test verifies that inactive services remain inactive while active services are restored.
 
 The active Quattro plugin was then updated after the physical session was unlocked. `doctor --json`, Omarchy plugin validation, fixed Solana read-only queries, Surfpool control, and the guarded Anchor workflow all passed from the installed user-scoped paths.
 
@@ -95,4 +95,6 @@ The corrected panel uses mutually exclusive visibility and explicit pending stat
 
 ## Remaining release validation
 
-Before a public release, run the documented matrix on a clean VM made from the latest stable Omarchy ISO, repeat it with network access disabled after installation, and test update from a previous signed tag. This existing workstation validation does not claim those clean-ISO checks.
+Version `0.3.0` adds the marketplace-review hardening described in `MARKETPLACE_REVIEW.md`: separate explicit agent-skill lifecycle, bounded/origin-restricted downloads, malicious-archive preflight, link-free derived artifacts, ownership markers, collision checks, transactional install/uninstall, and failure-injection rollback. Its local security suite passes, but it is not represented by the older live-host results above until the exact final commit is re-run on Omarchy.
+
+Before a public application release, run the documented matrix on a clean VM made from the latest stable Omarchy ISO, repeat it with network access disabled after installation, and test update from a previous signed tag. This existing workstation validation does not claim those clean-ISO checks.

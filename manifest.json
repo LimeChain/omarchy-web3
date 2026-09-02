@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "limechain.web3",
   "name": "Web3 Workstation",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "author": "LimeChain",
   "license": "MIT",
   "description": "Reproducible, non-custodial EVM, Solana, and lightweight Hedera workstation with guarded local tools and read-only telemetry.",

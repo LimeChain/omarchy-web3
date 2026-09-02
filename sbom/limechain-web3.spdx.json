@@ -8,8 +8,8 @@
     ]
   },
   "dataLicense": "CC0-1.0",
-  "documentNamespace": "https://limechain.tech/spdx/b88148d1-73e8-5c31-bc6b-351ef47f822d",
-  "name": "limechain-omarchy-web3-0.2.0",
+  "documentNamespace": "https://limechain.tech/spdx/1daea92a-b9ed-5912-b259-f0147d4bc2d9",
+  "name": "limechain-omarchy-web3-0.3.0",
   "packages": [
     {
       "SPDXID": "SPDXRef-Package-agave",
@@ -524,7 +524,7 @@
       "externalRefs": [
         {
           "referenceCategory": "PACKAGE-MANAGER",
-          "referenceLocator": "pkg:github/limechain/omarchy-web3@0.2.0",
+          "referenceLocator": "pkg:github/limechain/omarchy-web3@0.3.0",
           "referenceType": "purl"
         }
       ],
@@ -532,7 +532,7 @@
       "licenseConcluded": "MIT",
       "licenseDeclared": "MIT",
       "name": "limechain-omarchy-web3",
-      "versionInfo": "0.2.0"
+      "versionInfo": "0.3.0"
     },
     {
       "SPDXID": "SPDXRef-Package-multidict",
@@ -556,15 +556,15 @@
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "2f2c0da162318f0de47665410c7c8c2ed3d36c8f3105de4bbc61176c70a7cbf2"
+          "checksumValue": "82c635ea337e04509c265f8bf435043e47150127a1ada50efad3e67e4ffa9c49"
         }
       ],
       "copyrightText": "NOASSERTION",
-      "downloadLocation": "https://nodejs.org/dist/v24.20.0/node-v24.20.0-linux-x64.tar.xz",
+      "downloadLocation": "https://github.com/LimeChain/omarchy-web3/releases/download/toolchains-v1/node-v24.20.0-linux-x64-link-free.zip",
       "externalRefs": [
         {
           "referenceCategory": "PACKAGE-MANAGER",
-          "referenceLocator": "pkg:generic/node@24.20.0?download_url=https://nodejs.org/dist/v24.20.0/node-v24.20.0-linux-x64.tar.xz",
+          "referenceLocator": "pkg:generic/node@24.20.0?download_url=https://github.com/LimeChain/omarchy-web3/releases/download/toolchains-v1/node-v24.20.0-linux-x64-link-free.zip",
           "referenceType": "purl"
         }
       ],
@@ -613,15 +613,15 @@
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "8b3861e93daf085ec12b65c4fac374d9bec4587a3de16871da6b08ab0c1d907e"
+          "checksumValue": "674208d05dbc3471f8221bd2e3920528c28dc61f8ea9e41b88b8ac66ce69b32b"
         }
       ],
       "copyrightText": "NOASSERTION",
-      "downloadLocation": "https://github.com/anza-xyz/platform-tools/releases/download/v1.52/platform-tools-linux-x86_64.tar.bz2",
+      "downloadLocation": "https://github.com/LimeChain/omarchy-web3/releases/download/toolchains-v1/platform-tools-v1.52-linux-x86_64-link-free.zip",
       "externalRefs": [
         {
           "referenceCategory": "PACKAGE-MANAGER",
-          "referenceLocator": "pkg:generic/platform-tools@1.52?download_url=https://github.com/anza-xyz/platform-tools/releases/download/v1.52/platform-tools-linux-x86_64.tar.bz2",
+          "referenceLocator": "pkg:generic/platform-tools@1.52?download_url=https://github.com/LimeChain/omarchy-web3/releases/download/toolchains-v1/platform-tools-v1.52-linux-x86_64-link-free.zip",
           "referenceType": "purl"
         }
       ],

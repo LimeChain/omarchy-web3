@@ -75,14 +75,23 @@ class MetadataTests(unittest.TestCase):
         self.assertNotRegex(installer, re.compile(r"curl[^\n|]*\|\s*(ba)?sh"))
         self.assertNotRegex(installer, re.compile(r"(?m)^\s*sudo\s"))
 
-    def test_changed_plugin_uses_safe_shell_restart(self) -> None:
+    def test_agent_skill_is_separate_explicit_opt_in(self) -> None:
+        installer = (ROOT / "scripts" / "install.sh").read_text(encoding="utf-8")
+        uninstaller = (ROOT / "scripts" / "uninstall.sh").read_text(encoding="utf-8")
+        self.assertNotIn('lcw3_copy_tree "$SOURCE_DIR/skill', installer)
+        self.assertNotIn('rm -rf "$LCW3_SKILL_ROOT"', uninstaller)
+        self.assertTrue((ROOT / "install-agent-skill").is_file())
+        self.assertTrue((ROOT / "uninstall-agent-skill").is_file())
+        skill_installer = (ROOT / "scripts" / "install-agent-skill.sh").read_text(encoding="utf-8")
+        self.assertIn('skill_root="$skill_home/.agents/skills/limechain-web3"', skill_installer)
+        self.assertIn("managed-tree.py", skill_installer)
+
+    def test_transaction_validates_lock_state_before_safe_shell_restart(self) -> None:
         installer = (ROOT / "scripts" / "install.sh").read_text(encoding="utf-8")
         self.assertIn("lcw3_require_unlocked_session", installer)
         self.assertIn("omarchy-restart-shell", installer)
-        self.assertRegex(
-            installer,
-            re.compile(r"if \(\( plugin_changed \)\); then\n(?:.*\n){0,2}\s+omarchy-restart-shell\n"),
-        )
+        self.assertLess(installer.index("lcw3_require_unlocked_session"), installer.index("# Commit begins"))
+        self.assertGreater(installer.rindex("omarchy-restart-shell"), installer.index("# Commit begins"))
 
 
 if __name__ == "__main__":

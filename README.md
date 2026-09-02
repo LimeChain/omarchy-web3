@@ -38,13 +38,34 @@ Everything is additive and user-scoped. Tool versions and checksums are pinned, 
 
 ## Install
 
-Review the repository, then install it through Quattro's native plugin flow:
+> [!WARNING]
+> **Manual setup is required.** Marketplace installation adds the reviewed plugin checkout only. Review this scope, then run the profile installer yourself; it never asks for `sudo`.
+
+Install through Quattro's native plugin flow, then explicitly install the first profile:
 
 ```bash
 omarchy plugin add https://github.com/LimeChain/omarchy-web3.git --enable --yes && ~/.config/omarchy/plugins/limechain.web3/install --profile evm-core
 ```
 
 One command. No fork. User-scoped installation. No system package changes. No blind AUR bundle.
+
+The profile installer owns only these paths and refuses pre-existing unmarked collisions:
+
+| Scope | Path / change | Uninstall |
+|:--|:--|:--|
+| Application | `~/.local/share/limechain-web3` | Removed |
+| Command | `~/.local/bin/limechain-web3` symlink | Removed |
+| Configuration | `~/.config/limechain-web3/config.json` (`0600`) | Preserved; removed by `--purge` |
+| State | `~/.local/state/limechain-web3` | Removed |
+| Verified cache | `~/.cache/limechain-web3` | Preserved; removed by `--purge` |
+| Local services | Two marked files under `~/.config/systemd/user` | Removed |
+| Omarchy menu | One bounded `limechain.web3` managed block | Removed |
+| Plugin checkout | `~/.config/omarchy/plugins/limechain.web3` is managed by Omarchy | Removed through Omarchy |
+
+Every mutable application change is staged before commit. If validation, service reload, or shell reload fails, the installer restores the prior app, state, units, command link, and menu. Download cache entries may remain, but are byte-bounded and accepted only when their locked size and SHA-256 match.
+
+> [!NOTE]
+> Security ownership markers begin with `0.3.0`. An experimental `0.1.x`/`0.2.x` workstation is intentionally not auto-adopted. Before upgrading that pre-marketplace build, use its installed `limechain-web3 uninstall --purge`, update the Omarchy plugin, then perform a clean `0.3.0` profile install.
 
 Add the production-ready Solana profile with the same installer:
 
@@ -115,6 +136,20 @@ limechain-web3 shell
 
 The installer does not replace an existing global Foundry, Node.js, Bun, Python, or Solidity setup.
 
+### Optional coding-agent skill
+
+The marketplace/profile installer **does not install behavioral instructions** into any coding agent. If you want the separately reviewed helper skill, opt in explicitly from the plugin checkout:
+
+```bash
+~/.config/omarchy/plugins/limechain.web3/install-agent-skill
+```
+
+It has a fixed destination, `~/.agents/skills/limechain-web3`, and refuses symlink components, foreign ownership, unmarked collisions, extra files, or local modifications. Remove it **before removing the plugin checkout**:
+
+```bash
+~/.config/omarchy/plugins/limechain.web3/uninstall-agent-skill
+```
+
 ## One panel, four independent modes
 
 | | Local Anvil | Local Surfpool | EVM observer | Hedera observer |
@@ -142,7 +177,7 @@ URLs containing usernames, passwords, query parameters, or fragments are rejecte
 ## What ships
 
 - **Verified EVM core:** `forge`, `cast`, `anvil`, `chisel`, Solidity, `solc-select`, Node.js LTS, Bun, Slither, Echidna, and `uv`.
-- **Native Omarchy integration:** Quattro bar widget, plugin panel, Omarchy menu entries, and a cross-agent skill at `~/.agents/skills/limechain-web3`.
+- **Native Omarchy integration:** Quattro bar widget, plugin panel, and bounded Omarchy menu entries. A coding-agent skill is available only as a separate explicit opt-in.
 - **Managed local chain:** a loopback-only, silent `systemd --user` Anvil service with zero accounts.
 - **Verified Solana core:** Agave CLI `4.2.2`, Anchor `1.1.2`, its compatible SBF platform-tools `1.52`, and Surfpool `1.5.0`, all from versioned upstream release artifacts with locked SHA-256 digests.
 - **Narrow Solana workflow:** local read-only CLI queries and keypair-free Anchor scaffolding/compilation; wallet, keygen, config, airdrop, test/deploy, and transaction commands stay blocked.
@@ -229,6 +264,8 @@ limechain-web3 uninstall --purge
 ```
 
 Normal uninstall preserves credential-free configuration and the verified download cache. `--purge` removes both. Rollback behavior is documented in [ROLLBACK.md](docs/ROLLBACK.md).
+
+If you opted into the separate coding-agent skill, remove it first with `uninstall-agent-skill`; the workstation uninstaller deliberately never touches cross-tool behavioral instructions.
 
 ## License
 

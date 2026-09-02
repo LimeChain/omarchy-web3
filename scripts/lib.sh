@@ -8,19 +8,76 @@ lcw3_fail() {
 }
 
 lcw3_paths() {
-  LCW3_HOME=${LCW3_HOME:-$HOME}
-  LCW3_DATA_HOME=${LCW3_DATA_HOME:-$LCW3_HOME/.local/share}
-  LCW3_CONFIG_HOME=${LCW3_CONFIG_HOME:-$LCW3_HOME/.config}
-  LCW3_STATE_HOME=${LCW3_STATE_HOME:-$LCW3_HOME/.local/state}
-  LCW3_CACHE_HOME=${LCW3_CACHE_HOME:-$LCW3_HOME/.cache}
-  LCW3_BIN_HOME=${LCW3_BIN_HOME:-$LCW3_HOME/.local/bin}
-  LCW3_APP_ROOT=${LCW3_APP_ROOT:-$LCW3_DATA_HOME/limechain-web3}
-  LCW3_PLUGIN_ROOT=${LCW3_PLUGIN_ROOT:-$LCW3_CONFIG_HOME/omarchy/plugins/limechain.web3}
-  LCW3_SKILL_ROOT=${LCW3_SKILL_ROOT:-$LCW3_HOME/.agents/skills/limechain-web3}
-  LCW3_SYSTEMD_ROOT=${LCW3_SYSTEMD_ROOT:-$LCW3_CONFIG_HOME/systemd/user}
-  LCW3_INSTALL_STATE=${LCW3_INSTALL_STATE:-$LCW3_STATE_HOME/limechain-web3/install-state.json}
+  local actual_home=${HOME:?HOME is required}
+  if [[ ${LCW3_TESTING:-0} == 1 ]]; then
+    LCW3_HOME=${LCW3_HOME:-$actual_home}
+  else
+    [[ -z ${LCW3_HOME:-} || $LCW3_HOME == "$actual_home" ]] \
+      || lcw3_fail "LCW3_HOME overrides are test-only"
+    LCW3_HOME=$actual_home
+  fi
+  local default_data=${XDG_DATA_HOME:-$LCW3_HOME/.local/share}
+  local default_config=${XDG_CONFIG_HOME:-$LCW3_HOME/.config}
+  local default_state=${XDG_STATE_HOME:-$LCW3_HOME/.local/state}
+  local default_cache=${XDG_CACHE_HOME:-$LCW3_HOME/.cache}
+  if [[ ${LCW3_TESTING:-0} == 1 ]]; then
+    LCW3_DATA_HOME=${LCW3_DATA_HOME:-$default_data}
+    LCW3_CONFIG_HOME=${LCW3_CONFIG_HOME:-$default_config}
+    LCW3_STATE_HOME=${LCW3_STATE_HOME:-$default_state}
+    LCW3_CACHE_HOME=${LCW3_CACHE_HOME:-$default_cache}
+    LCW3_BIN_HOME=${LCW3_BIN_HOME:-$LCW3_HOME/.local/bin}
+    LCW3_APP_ROOT=${LCW3_APP_ROOT:-$LCW3_DATA_HOME/limechain-web3}
+    LCW3_PLUGIN_ROOT=${LCW3_PLUGIN_ROOT:-$LCW3_CONFIG_HOME/omarchy/plugins/limechain.web3}
+    LCW3_SYSTEMD_ROOT=${LCW3_SYSTEMD_ROOT:-$LCW3_CONFIG_HOME/systemd/user}
+    LCW3_INSTALL_STATE=${LCW3_INSTALL_STATE:-$LCW3_STATE_HOME/limechain-web3/install-state.json}
+    LCW3_MENU_FILE=${LCW3_MENU_FILE:-$LCW3_CONFIG_HOME/omarchy/extensions/omarchy-menu.jsonc}
+  else
+    for override in LCW3_DATA_HOME LCW3_CONFIG_HOME LCW3_STATE_HOME LCW3_CACHE_HOME LCW3_BIN_HOME \
+      LCW3_APP_ROOT LCW3_PLUGIN_ROOT LCW3_SYSTEMD_ROOT LCW3_INSTALL_STATE LCW3_MENU_FILE; do
+      [[ -z ${!override:-} ]] || lcw3_fail "$override overrides are test-only"
+    done
+    LCW3_DATA_HOME=$default_data
+    LCW3_CONFIG_HOME=$default_config
+    LCW3_STATE_HOME=$default_state
+    LCW3_CACHE_HOME=$default_cache
+    LCW3_BIN_HOME=$LCW3_HOME/.local/bin
+    LCW3_APP_ROOT=$LCW3_DATA_HOME/limechain-web3
+    LCW3_PLUGIN_ROOT=$LCW3_CONFIG_HOME/omarchy/plugins/limechain.web3
+    LCW3_SYSTEMD_ROOT=$LCW3_CONFIG_HOME/systemd/user
+    LCW3_INSTALL_STATE=$LCW3_STATE_HOME/limechain-web3/install-state.json
+    LCW3_MENU_FILE=$LCW3_CONFIG_HOME/omarchy/extensions/omarchy-menu.jsonc
+  fi
   export LCW3_HOME LCW3_DATA_HOME LCW3_CONFIG_HOME LCW3_STATE_HOME LCW3_CACHE_HOME
-  export LCW3_BIN_HOME LCW3_APP_ROOT LCW3_PLUGIN_ROOT LCW3_SKILL_ROOT LCW3_SYSTEMD_ROOT LCW3_INSTALL_STATE
+  export LCW3_BIN_HOME LCW3_APP_ROOT LCW3_PLUGIN_ROOT LCW3_SYSTEMD_ROOT LCW3_INSTALL_STATE LCW3_MENU_FILE
+}
+
+lcw3_assert_managed_path() {
+  local target=$1
+  local label=$2
+  lcw3_assert_safe_path "$target" "$label"
+  local helper=${LCW3_SECURITY_HELPER:-$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)/managed-tree.py}
+  python3 "$helper" check --target "$target" --boundary "$LCW3_HOME" --scope path
+}
+
+lcw3_write_owner_marker() {
+  local root=$1
+  local scope=$2
+  install -d -m 0700 "$root"
+  jq -cn --arg scope "$scope" --argjson uid "$UID" \
+    '{schema:1,owner:"limechain.web3",scope:$scope,uid:$uid}' >"$root/.limechain-web3-managed.json"
+  chmod 0600 "$root/.limechain-web3-managed.json"
+}
+
+lcw3_require_owner_marker() {
+  local root=$1
+  local scope=$2
+  local marker="$root/.limechain-web3-managed.json"
+  [[ -f $marker && ! -L $marker ]] || lcw3_fail "existing $scope is not marked as owned: $root"
+  [[ $(stat -c %u "$marker" 2>/dev/null || stat -f %u "$marker") == "$UID" ]] \
+    || lcw3_fail "$scope ownership marker belongs to another user: $marker"
+  jq -e --arg scope "$scope" --argjson uid "$UID" \
+    '.schema == 1 and .owner == "limechain.web3" and .scope == $scope and .uid == $uid' \
+    "$marker" >/dev/null || lcw3_fail "invalid $scope ownership marker: $marker"
 }
 
 lcw3_assert_safe_path() {

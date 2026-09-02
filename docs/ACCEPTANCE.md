@@ -9,6 +9,16 @@ Run this matrix on a clean x86-64 VM installed from the latest stable Omarchy Qu
 3. Confirm the second run changes no user-authored menu or shell configuration.
 4. Run `limechain-web3 doctor --json`; every check must pass.
 5. Confirm the bar widget loads and its panel opens.
+6. Confirm no path exists at `~/.agents/skills/limechain-web3` unless the separate opt-in command was run.
+
+## Marketplace security boundaries
+
+1. Run the malicious archive/download unit suite and retain its output with the validation record.
+2. Reproduce both derived link-free archives on Ubuntu 24.04; compare sizes and SHA-256 values with the locks and verify their GitHub attestations.
+3. Create unmarked collisions at each application/config/state/cache/CLI/service destination in an isolated home and confirm install/uninstall refuses them without mutation.
+4. Replace a parent component with a symlink and confirm the lifecycle refuses it.
+5. Inject the post-app-commit test failure and confirm the old app, state, CLI link, menu bytes, unit bytes, and prior active/inactive service states are restored.
+6. Modify and add a file to the optional agent skill. Confirm update/removal refuses it, then restore the exact manifest and confirm removal succeeds.
 
 ## Toolchain smoke test
 
@@ -95,5 +105,6 @@ Do not install or start Solo as part of this profile. A future optional Solo lab
 2. Run normal uninstall and confirm project-owned files and service state are removed while configuration/cache remain.
 3. Reinstall, run purge uninstall, and confirm configuration/cache are removed.
 4. Confirm unrelated Omarchy plugins, menu entries, agent skills, and shell layout remain unchanged after both paths.
+5. Run the separate agent-skill opt-in/update/removal lifecycle before plugin removal; confirm base install/uninstall never creates or removes that tree.
 
 Do not run destructive lifecycle tests on a user's daily machine; use a clean VM snapshot.

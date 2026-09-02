@@ -14,6 +14,7 @@ import socket
 import stat
 import subprocess
 import sys
+import tempfile
 import time
 import tomllib
 import urllib.error
@@ -188,17 +189,31 @@ def read_json(path: Path) -> dict[str, Any]:
     return value
 
 
+def atomic_write(path: Path, content: str, mode: int) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    if path.is_symlink():
+        raise RuntimeError(f"refusing to replace a symlink: {path}")
+    descriptor, temporary = tempfile.mkstemp(prefix=f".{path.name}.", dir=path.parent)
+    temp_path = Path(temporary)
+    try:
+        with os.fdopen(descriptor, "w", encoding="utf-8") as handle:
+            handle.write(content)
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.chmod(temp_path, mode)
+        temp_path.replace(path)
+    except BaseException:
+        temp_path.unlink(missing_ok=True)
+        raise
+
+
 def load_config() -> dict[str, Any]:
     return read_json(config_path())
 
 
 def write_config(config: dict[str, Any]) -> None:
     path = config_path()
-    path.parent.mkdir(parents=True, exist_ok=True)
-    temp = path.with_suffix(".tmp")
-    temp.write_text(json.dumps(config, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-    os.chmod(temp, 0o600)
-    temp.replace(path)
+    atomic_write(path, json.dumps(config, indent=2, sort_keys=True) + "\n", 0o600)
 
 
 def validate_public_rpc_url(value: str, *, allow_local: bool = False, resolve: bool = False) -> str:
@@ -1340,9 +1355,7 @@ def install_menu_extension() -> None:
     rendered_entries = ",\n".join(f"  {entry}" for entry in entries)
     block = f"  {MENU_BEGIN}\n{rendered_entries}\n  {MENU_END}\n"
     updated = before.rstrip() + "\n" + block + text[close_index:]
-    temp = path.with_suffix(".tmp")
-    temp.write_text(updated, encoding="utf-8")
-    temp.replace(path)
+    atomic_write(path, updated, 0o600)
 
 
 def remove_menu_extension() -> None:
@@ -1356,9 +1369,7 @@ def remove_menu_extension() -> None:
     )
     updated, count = pattern.subn("\n", text, count=1)
     if count:
-        temp = path.with_suffix(".tmp")
-        temp.write_text(updated, encoding="utf-8")
-        temp.replace(path)
+        atomic_write(path, updated, 0o600)
 
 
 def command_internal(args: argparse.Namespace) -> int:
@@ -1375,7 +1386,8 @@ def command_lifecycle(args: argparse.Namespace) -> int:
     script = app_root() / "scripts" / ("update.sh" if args.action == "update" else "uninstall.sh")
     if not script.is_file():
         raise RuntimeError(f"lifecycle script is missing: {script}")
-    return subprocess.run([str(script), *args.extra]).returncode
+    extra = ["--purge"] if args.action == "uninstall" and args.purge else []
+    return subprocess.run([str(script), *extra]).returncode
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -1499,10 +1511,11 @@ def build_parser() -> argparse.ArgumentParser:
     explorer.add_argument("value", nargs="?")
     explorer.set_defaults(func=command_open_explorer)
 
-    for action in ("update", "uninstall"):
-        lifecycle = sub.add_parser(action, help=f"{action} the workstation")
-        lifecycle.add_argument("extra", nargs=argparse.REMAINDER)
-        lifecycle.set_defaults(func=command_lifecycle, action=action)
+    update = sub.add_parser("update", help="update the workstation")
+    update.set_defaults(func=command_lifecycle, action="update", purge=False)
+    uninstall = sub.add_parser("uninstall", help="uninstall the workstation")
+    uninstall.add_argument("--purge", action="store_true", help="also remove owned configuration and cache")
+    uninstall.set_defaults(func=command_lifecycle, action="uninstall")
 
     internal = sub.add_parser("internal", help=argparse.SUPPRESS)
     internal.add_argument("action", choices=("install-menu", "remove-menu"))
