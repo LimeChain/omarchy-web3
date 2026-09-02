@@ -14,12 +14,14 @@ Panel {
   property var report: ({
     chain: { name: "Web3", ok: false, block_height: null, gas_gwei: null, base_fee_gwei: null },
     local: { installed: true, ok: false, service_active: false, block_height: null },
-    solana: { installed: false, ok: false, service_active: false, slot: null, version: null, surfpool_version: null, cli_version: null, anchor_version: null, mode: "offline" }
+    solana: { installed: false, ok: false, service_active: false, slot: null, version: null, surfpool_version: null, cli_version: null, anchor_version: null, mode: "offline" },
+    hedera: { installed: false, ok: false, network: "testnet", block_height: null, node_count: null, latency_ms: null, mode: "read-only" }
   })
   property string lastError: ""
   property bool refreshing: false
   property string anvilAction: ""
   property string surfpoolAction: ""
+  property string hederaAction: ""
   readonly property string cli: Quickshell.env("HOME") + "/.local/bin/limechain-web3"
   readonly property int refreshSeconds: Math.max(5, parseInt(setting("refreshIntervalSec", 15), 10) || 15)
   readonly property color foreground: bar ? bar.foreground : Color.foreground
@@ -34,6 +36,8 @@ Panel {
   readonly property bool solanaInstalled: report.solana && report.solana.installed === true
   readonly property bool solanaHealthy: report.solana && report.solana.ok === true
   readonly property bool surfpoolActive: report.solana && report.solana.service_active === true
+  readonly property bool hederaInstalled: report.hedera && report.hedera.installed === true
+  readonly property bool hederaHealthy: report.hedera && report.hedera.ok === true
   readonly property string barText: {
     if (localHealthy && solanaHealthy)
       return "A " + compactNumber(report.local.block_height) + " · S " + compactNumber(report.solana.slot)
@@ -43,6 +47,8 @@ Panel {
       return "A " + compactNumber(report.local.block_height)
     if (solanaHealthy && report.solana.slot !== null)
       return "S " + compactNumber(report.solana.slot)
+    if (hederaHealthy && report.hedera.block_height !== null)
+      return "H " + compactNumber(report.hedera.block_height)
     return "⬡"
   }
 
@@ -120,6 +126,20 @@ Panel {
     explorerProc.running = true
   }
 
+  function openHederaLatestBlock() {
+    if (!hederaHealthy || hederaExplorerProc.running) return
+    hederaExplorerProc.command = [root.cli, "hedera", "open-latest"]
+    hederaExplorerProc.running = true
+  }
+
+  function switchHederaNetwork(network) {
+    if (hederaNetworkProc.running || hederaAction !== "") return
+    hederaAction = network
+    lastError = ""
+    hederaNetworkProc.command = [root.cli, "hedera", "network", network]
+    hederaNetworkProc.running = true
+  }
+
   implicitWidth: button.implicitWidth
   implicitHeight: button.implicitHeight
 
@@ -146,7 +166,7 @@ Panel {
         if (!raw) return
         try {
           var parsed = JSON.parse(raw)
-          if (parsed && parsed.chain && parsed.local && parsed.solana) {
+          if (parsed && parsed.chain && parsed.local && parsed.solana && parsed.hedera) {
             root.report = parsed
             if ((root.anvilAction === "start" && parsed.local.service_active === true)
                 || (root.anvilAction === "stop" && parsed.local.service_active === false))
@@ -214,7 +234,24 @@ Panel {
   }
 
   Process { id: explorerProc }
+  Process { id: hederaExplorerProc }
   Process { id: guideProc }
+
+  Process {
+    id: hederaNetworkProc
+    stderr: StdioCollector {
+      waitForEnd: true
+      onStreamFinished: {
+        var raw = String(text || "").trim()
+        if (raw) root.lastError = raw.split("\n")[0]
+      }
+    }
+    onExited: function(exitCode) {
+      if (exitCode !== 0 && root.lastError === "") root.lastError = "Hedera network change failed"
+      root.hederaAction = ""
+      root.refresh()
+    }
+  }
 
   Timer {
     id: actionPoll
@@ -260,13 +297,14 @@ Panel {
     anchors.fill: parent
     bar: root.bar
     text: root.barText
-    slotSize: root.chainHealthy || root.localHealthy || root.solanaHealthy ? Style.bar.statusSlot : Style.bar.iconSlot
+    slotSize: root.chainHealthy || root.localHealthy || root.solanaHealthy || root.hederaHealthy ? Style.bar.statusSlot : Style.bar.iconSlot
     tooltipText: root.localHealthy && root.solanaHealthy
       ? "Anvil block " + root.display(root.report.local.block_height, "") + " · Surfpool slot " + root.display(root.report.solana.slot, "")
       : root.localHealthy ? "Local Anvil · block " + root.display(root.report.local.block_height, "")
       : root.solanaHealthy ? "Offline Surfpool · slot " + root.display(root.report.solana.slot, "")
+      : root.hederaHealthy ? "Hedera " + root.report.hedera.network + " · block " + root.display(root.report.hedera.block_height, "")
       : root.chainHealthy ? root.report.chain.name + " read-only status" : "Web3 Workstation · stopped"
-    active: root.localHealthy || root.solanaHealthy
+    active: root.localHealthy || root.solanaHealthy || root.hederaHealthy
     onPressed: function(code) {
       if (code === Qt.RightButton) root.refresh()
       else root.toggle()
@@ -302,10 +340,12 @@ Panel {
           title: root.localHealthy && root.solanaHealthy ? "Web3 Workstation"
             : root.localHealthy ? "Local Anvil"
             : root.solanaHealthy ? "Local Surfpool"
+            : root.hederaHealthy ? "Hedera " + root.report.hedera.network
             : root.chainHealthy ? root.report.chain.name : "Web3 Workstation"
           meta: root.localHealthy && root.solanaHealthy ? "EVM + Solana local runtimes ready"
             : root.localHealthy ? "Local development RPC ready · chain 31337"
             : root.solanaHealthy ? "Offline Solana RPC ready · slot " + root.display(root.report.solana.slot, "")
+            : root.hederaHealthy ? "Read-only Mirror Node ready · block " + root.display(root.report.hedera.block_height, "")
             : root.chainHealthy ? "Read-only remote observer" : "Start a local chain when you need it"
           foreground: root.foreground
           fontFamily: root.fontFamily
@@ -332,13 +372,14 @@ Panel {
         }
 
         PanelSectionHeader {
+          visible: root.evmInstalled || root.chainConfigured
           text: "REMOTE OBSERVER (OPTIONAL)"
           foreground: root.foreground
           fontFamily: root.fontFamily
         }
 
         Text {
-          visible: !root.chainConfigured
+          visible: root.evmInstalled && !root.chainConfigured
           width: parent.width
           text: "Not connected by default. Local Anvil works independently, and no external service is contacted."
           textFormat: Text.PlainText
@@ -349,7 +390,7 @@ Panel {
         }
 
         Button {
-          visible: !root.chainConfigured
+          visible: root.evmInstalled && !root.chainConfigured
           text: "Show remote setup guide"
           iconText: "󰒓"
           foreground: root.foreground
@@ -372,6 +413,87 @@ Panel {
           fontFamily: root.fontFamily
           bordered: true
           onClicked: root.openLatestBlock()
+        }
+
+        PanelSeparator { visible: root.hederaInstalled; foreground: root.foreground }
+
+        PanelSectionHeader {
+          visible: root.hederaInstalled
+          text: "HEDERA OBSERVER"
+          foreground: root.foreground
+          fontFamily: root.fontFamily
+        }
+
+        InfoPair { visible: root.hederaInstalled; label: "Status"; value: root.hederaHealthy ? "healthy" : "offline" }
+        InfoPair { visible: root.hederaInstalled; label: "Network"; value: report.hedera ? report.hedera.network : "testnet" }
+        InfoPair { visible: root.hederaInstalled; label: "Block"; value: root.display(report.hedera ? report.hedera.block_height : null, "") }
+        InfoPair { visible: root.hederaInstalled; label: "Consensus nodes"; value: root.display(report.hedera ? report.hedera.node_count : null, report.hedera && report.hedera.node_count_truncated ? "+" : "") }
+        InfoPair { visible: root.hederaInstalled; label: "HAPI"; value: root.display(report.hedera ? report.hedera.hapi_version : null, "") }
+        InfoPair { visible: root.hederaInstalled; label: "Latency"; value: root.display(report.hedera ? report.hedera.latency_ms : null, " ms") }
+
+        RowLayout {
+          visible: root.hederaInstalled && root.hederaAction === ""
+          width: parent.width
+          spacing: Style.space(8)
+
+          Button {
+            visible: !report.hedera || report.hedera.network !== "testnet"
+            text: "Testnet"
+            foreground: root.foreground
+            fontFamily: root.fontFamily
+            bordered: true
+            Layout.fillWidth: true
+            onClicked: root.switchHederaNetwork("testnet")
+          }
+          Button {
+            visible: !report.hedera || report.hedera.network !== "mainnet"
+            text: "Mainnet"
+            foreground: root.foreground
+            fontFamily: root.fontFamily
+            bordered: true
+            Layout.fillWidth: true
+            onClicked: root.switchHederaNetwork("mainnet")
+          }
+          Button {
+            visible: !report.hedera || report.hedera.network !== "previewnet"
+            text: "Previewnet"
+            foreground: root.foreground
+            fontFamily: root.fontFamily
+            bordered: true
+            Layout.fillWidth: true
+            onClicked: root.switchHederaNetwork("previewnet")
+          }
+        }
+
+        Button {
+          visible: root.hederaInstalled && root.hederaAction !== ""
+          text: "Switching to " + root.hederaAction + "…"
+          iconText: "󰑐"
+          iconSpinning: true
+          foreground: root.dim
+          fontFamily: root.fontFamily
+          bordered: true
+        }
+
+        Button {
+          visible: root.hederaInstalled && root.hederaHealthy
+          text: "Open latest block"
+          iconText: "󰖟"
+          foreground: root.foreground
+          fontFamily: root.fontFamily
+          bordered: true
+          onClicked: root.openHederaLatestBlock()
+        }
+
+        Text {
+          visible: root.hederaInstalled
+          width: parent.width
+          text: "Lightweight read-only access through an official Mirror Node. No wallet, credentials, signing, or transaction submission. Solo is not started."
+          textFormat: Text.PlainText
+          color: root.dim
+          font.family: root.fontFamily
+          font.pixelSize: Style.font.caption
+          wrapMode: Text.WordWrap
         }
 
         PanelSeparator { visible: root.evmInstalled; foreground: root.foreground }

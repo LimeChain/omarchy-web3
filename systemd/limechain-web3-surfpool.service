@@ -1,3 +1,4 @@
+# Managed by limechain.web3; ownership-schema=1
 [Unit]
 Description=LimeChain local offline Surfpool RPC
 Documentation=https://github.com/LimeChain/omarchy-web3
@@ -11,6 +12,8 @@ Environment=HOME=/tmp/limechain-web3-surfpool-home
 ExecStart="@APP_ROOT@/raw-bin/surfpool" start --offline --host 127.0.0.1 --port 8899 --ws-port 8900 --ci --no-deploy --yes --db :memory: --surfnet-id limechain-web3 --airdrop-keypair-path /dev/null --airdrop-amount 0
 Restart=on-failure
 RestartSec=2
+KillSignal=SIGINT
+TimeoutStopSec=5s
 NoNewPrivileges=true
 KeyringMode=private
 CapabilityBoundingSet=

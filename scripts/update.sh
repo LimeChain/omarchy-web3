@@ -9,14 +9,72 @@ lcw3_paths
 plugin_root="$LCW3_PLUGIN_ROOT"
 if [[ -d $plugin_root/.git ]] && command -v omarchy >/dev/null; then
   lcw3_export_omarchy_path
-  omarchy plugin update limechain.web3 --yes
-  profiles=(evm-core)
-  if [[ -f $LCW3_INSTALL_STATE ]]; then
-    mapfile -t profiles < <(jq -r 'if (.profiles | type) == "array" then .profiles[] elif .profile then .profile else "evm-core" end' "$LCW3_INSTALL_STATE")
+  lcw3_require_unlocked_session
+  plugin_parent=$(dirname -- "$plugin_root")
+  lcw3_assert_managed_path "$plugin_root" "plugin root"
+  shell_config="$LCW3_CONFIG_HOME/omarchy/shell.json"
+  lcw3_assert_user_regular_file_or_absent "$shell_config" "Omarchy shell configuration"
+  transaction=$(mktemp -d "$plugin_parent/.limechain-web3.update.XXXXXX")
+  chmod 0700 "$transaction"
+  cleanup_update_snapshot() {
+    local status=$?
+    trap - EXIT INT TERM
+    [[ ! -e $transaction ]] || python3 -c 'import shutil,sys; shutil.rmtree(sys.argv[1])' "$transaction"
+    exit "$status"
+  }
+  trap cleanup_update_snapshot EXIT INT TERM
+  lcw3_snapshot_user_tree "$plugin_root" "$transaction/plugin"
+  shell_config_existed=0
+  if [[ -f $shell_config ]]; then
+    cp -p -- "$shell_config" "$transaction/shell.json"
+    shell_config_existed=1
   fi
-  for profile in "${profiles[@]}"; do
+  complete=0
+  rollback_update() {
+    local status=$?
+    trap - EXIT INT TERM
+    if (( ! complete )); then
+      if [[ -e $plugin_root || -L $plugin_root ]]; then
+        mv "$plugin_root" "$transaction/failed-plugin"
+      fi
+      mv "$transaction/plugin" "$plugin_root"
+      lcw3_restore_regular_file "$transaction/shell.json" "$shell_config" "$shell_config_existed"
+      omarchy-shell shell reloadConfig >/dev/null 2>&1 || true
+      omarchy-shell shell rescanPlugins >/dev/null 2>&1 || true
+      command -v omarchy-restart-shell >/dev/null && omarchy-restart-shell >/dev/null 2>&1 || true
+    fi
+    [[ ! -e $transaction ]] || python3 -c 'import shutil,sys; shutil.rmtree(sys.argv[1])' "$transaction"
+    exit "$status"
+  }
+  trap rollback_update EXIT INT TERM
+  omarchy plugin update limechain.web3 --yes
+  profile=evm-core
+  if [[ -f $LCW3_INSTALL_STATE ]]; then
+    profile=$(jq -r 'if (.profiles | type) == "array" and (.profiles | length) > 0 then .profiles[0] elif .profile then .profile else "evm-core" end' "$LCW3_INSTALL_STATE")
+  fi
+  # One transactional installer run refreshes every profile recorded in state.
+  if [[ ${LCW3_TESTING:-0} == 1 ]]; then
     "$plugin_root/install" --profile "$profile" "$@"
-  done
+  else
+    # lcw3_paths exports its resolved paths for this lifecycle process. They
+    # are internal state, not user-authorized production overrides, so do not
+    # leak them into the fresh installer process whose own guard must see a
+    # clean environment and derive the same canonical paths independently.
+    env \
+      -u LCW3_HOME \
+      -u LCW3_DATA_HOME \
+      -u LCW3_CONFIG_HOME \
+      -u LCW3_STATE_HOME \
+      -u LCW3_CACHE_HOME \
+      -u LCW3_BIN_HOME \
+      -u LCW3_APP_ROOT \
+      -u LCW3_PLUGIN_ROOT \
+      -u LCW3_SYSTEMD_ROOT \
+      -u LCW3_INSTALL_STATE \
+      -u LCW3_MENU_FILE \
+      "$plugin_root/install" --profile "$profile" "$@"
+  fi
+  complete=1
   exit 0
 fi
 

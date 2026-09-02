@@ -25,15 +25,25 @@ class MetadataTests(unittest.TestCase):
         self.assertIn('[root.cli, "status", "--json"]', qml)
         self.assertIn('[root.cli, "anvil", action]', qml)
         self.assertIn('[root.cli, "surfpool", action]', qml)
+        self.assertIn('[root.cli, "hedera", "open-latest"]', qml)
         self.assertIn('label: "Solana CLI"', qml)
         self.assertIn('label: "Anchor"', qml)
         self.assertIn('visible: !root.anvilActive && root.anvilAction === ""', qml)
         self.assertIn('visible: !root.surfpoolActive && root.surfpoolAction === ""', qml)
         self.assertIn('text: "REMOTE OBSERVER (OPTIONAL)"', qml)
+        self.assertIn('text: "HEDERA OBSERVER"', qml)
         self.assertNotRegex(qml, r'enabled:\s*[!]?root\.anvilActive')
         self.assertNotRegex(qml, r'enabled:\s*[!]?root\.surfpoolActive')
         self.assertNotRegex(qml, r"command:\s*\[\s*\"surfpool\"")
         self.assertNotIn("private", qml.lower())
+
+    def test_hedera_profile_has_no_binary_or_service_payload(self) -> None:
+        lock = json.loads((ROOT / "toolchains" / "hedera-core.lock.json").read_text(encoding="utf-8"))
+        self.assertEqual(lock["platform"], "any")
+        self.assertEqual(lock["artifacts"], [])
+        installer = (ROOT / "scripts" / "install.sh").read_text(encoding="utf-8")
+        self.assertIn("evm-core | solana-core | hedera-core", installer)
+        self.assertNotIn("limechain-web3-hedera.service", installer)
 
     def test_surfpool_service_is_offline_and_non_custodial(self) -> None:
         unit = (ROOT / "systemd" / "limechain-web3-surfpool.service").read_text(encoding="utf-8")
@@ -43,6 +53,8 @@ class MetadataTests(unittest.TestCase):
         self.assertIn("ProtectHome=tmpfs", unit)
         self.assertIn("IPAddressDeny=any", unit)
         self.assertIn("IPAddressAllow=localhost", unit)
+        self.assertIn("KillSignal=SIGINT", unit)
+        self.assertIn("TimeoutStopSec=5s", unit)
 
     def test_solana_artifact_and_guard_contract(self) -> None:
         lock = json.loads((ROOT / "toolchains" / "solana-core.lock.json").read_text(encoding="utf-8"))
@@ -63,14 +75,33 @@ class MetadataTests(unittest.TestCase):
         self.assertNotRegex(installer, re.compile(r"curl[^\n|]*\|\s*(ba)?sh"))
         self.assertNotRegex(installer, re.compile(r"(?m)^\s*sudo\s"))
 
-    def test_changed_plugin_uses_safe_shell_restart(self) -> None:
+    def test_agent_skill_is_separate_explicit_opt_in(self) -> None:
+        installer = (ROOT / "scripts" / "install.sh").read_text(encoding="utf-8")
+        uninstaller = (ROOT / "scripts" / "uninstall.sh").read_text(encoding="utf-8")
+        self.assertNotIn('lcw3_copy_tree "$SOURCE_DIR/skill', installer)
+        self.assertNotIn('rm -rf "$LCW3_SKILL_ROOT"', uninstaller)
+        self.assertTrue((ROOT / "install-agent-skill").is_file())
+        self.assertTrue((ROOT / "uninstall-agent-skill").is_file())
+        skill_installer = (ROOT / "scripts" / "install-agent-skill.sh").read_text(encoding="utf-8")
+        self.assertIn('skill_root="$skill_home/.agents/skills/limechain-web3"', skill_installer)
+        self.assertIn("managed-tree.py", skill_installer)
+
+    def test_transaction_validates_lock_state_before_safe_shell_restart(self) -> None:
         installer = (ROOT / "scripts" / "install.sh").read_text(encoding="utf-8")
         self.assertIn("lcw3_require_unlocked_session", installer)
         self.assertIn("omarchy-restart-shell", installer)
-        self.assertRegex(
-            installer,
-            re.compile(r"if \(\( plugin_changed \)\); then\n(?:.*\n){0,2}\s+omarchy-restart-shell\n"),
-        )
+        self.assertLess(installer.index("lcw3_require_unlocked_session"), installer.index("# Commit begins"))
+        self.assertGreater(installer.rindex("omarchy-restart-shell"), installer.index("# Commit begins"))
+
+    def test_update_and_uninstall_snapshot_omarchy_owned_state(self) -> None:
+        updater = (ROOT / "scripts" / "update.sh").read_text(encoding="utf-8")
+        uninstaller = (ROOT / "scripts" / "uninstall.sh").read_text(encoding="utf-8")
+        self.assertLess(updater.index("lcw3_require_unlocked_session"), updater.index("omarchy plugin update"))
+        self.assertIn('lcw3_snapshot_user_tree "$plugin_root" "$transaction/plugin"', updater)
+        self.assertIn('lcw3_restore_regular_file "$transaction/shell.json"', updater)
+        self.assertIn('lcw3_snapshot_user_tree "$LCW3_PLUGIN_ROOT" "$transaction/native-plugin"', uninstaller)
+        self.assertIn('mv "$transaction/native-plugin" "$LCW3_PLUGIN_ROOT"', uninstaller)
+        self.assertIn('lcw3_restore_regular_file "$transaction/shell.json"', uninstaller)
 
 
 if __name__ == "__main__":

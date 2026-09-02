@@ -1,3 +1,4 @@
+# Managed by limechain.web3; ownership-schema=1
 [Unit]
 Description=LimeChain local account-free Anvil RPC
 Documentation=https://github.com/limechain/omarchy-web3

@@ -1,5 +1,5 @@
 {
-  "schema": 1,
+  "schema": 2,
   "profile": "solana-core",
   "platform": "linux-x86_64",
   "generated_at": "2026-08-31T00:00:00Z",
@@ -9,8 +9,16 @@
       "version": "1.5.0",
       "url": "https://github.com/solana-foundation/surfpool/releases/download/v1.5.0/surfpool-linux-x64.tar.gz",
       "sha256": "5b20a3b46e60c4f819af7b4da5c3ea211f76041710617841cc23247d15887ddc",
+      "size": 34170467,
+      "redirect_hosts": ["github.com", "release-assets.githubusercontent.com"],
       "archive": "tar.gz",
       "strip_components": 0,
+      "extraction": {
+        "max_entries": 1,
+        "max_unpacked_bytes": 101648968,
+        "max_file_bytes": 101648968,
+        "allowed_top_level": ["surfpool"]
+      },
       "bins": {
         "surfpool": "surfpool"
       }
@@ -20,8 +28,16 @@
       "version": "4.2.2",
       "url": "https://github.com/anza-xyz/agave/releases/download/v4.2.2/solana-release-x86_64-unknown-linux-gnu.tar.bz2",
       "sha256": "5fc8684f7430038105fde953d4308ed56addf627f658daa61709f345448247ee",
+      "size": 86382236,
+      "redirect_hosts": ["github.com", "release-assets.githubusercontent.com"],
       "archive": "tar.bz2",
       "strip_components": 1,
+      "extraction": {
+        "max_entries": 16,
+        "max_unpacked_bytes": 261087745,
+        "max_file_bytes": 75159976,
+        "allowed_top_level": [".crates.toml", ".crates2.json", "bin", "version.yml"]
+      },
       "bins": {
         "solana": "bin/solana",
         "cargo-build-sbf": "bin/cargo-build-sbf"
@@ -32,6 +48,8 @@
       "version": "1.1.2",
       "url": "https://github.com/otter-sec/anchor/releases/download/v1.1.2/anchor-1.1.2-x86_64-unknown-linux-gnu",
       "sha256": "fdea9979629e9416e5f5e5622ff6c11b8c691d1e559581ece368e903c0c980c1",
+      "size": 21765136,
+      "redirect_hosts": ["github.com", "release-assets.githubusercontent.com"],
       "archive": "raw",
       "strip_components": 0,
       "bins": {
@@ -41,10 +59,41 @@
     {
       "id": "platform-tools",
       "version": "1.52",
-      "url": "https://github.com/anza-xyz/platform-tools/releases/download/v1.52/platform-tools-linux-x86_64.tar.bz2",
-      "sha256": "8b3861e93daf085ec12b65c4fac374d9bec4587a3de16871da6b08ab0c1d907e",
-      "archive": "tar.bz2",
+      "url": "https://github.com/LimeChain/omarchy-web3/releases/download/toolchains-v1/platform-tools-v1.52-linux-x86_64-link-free.zip",
+      "sha256": "674208d05dbc3471f8221bd2e3920528c28dc61f8ea9e41b88b8ac66ce69b32b",
+      "size": 574242058,
+      "redirect_hosts": ["github.com", "release-assets.githubusercontent.com"],
+      "archive": "zip",
       "strip_components": 0,
+      "extraction": {
+        "max_entries": 3198,
+        "max_unpacked_bytes": 1663263438,
+        "max_file_bytes": 218706352,
+        "allowed_top_level": ["llvm", "rust", "version.md"]
+      },
+      "materialized_symlinks": {
+        "llvm/bin/clang": "llvm/bin/clang-20",
+        "llvm/bin/clang++": "llvm/bin/clang-20",
+        "llvm/bin/clang-cl": "llvm/bin/clang-20",
+        "llvm/bin/clang-cpp": "llvm/bin/clang-20",
+        "llvm/bin/ld.lld": "llvm/bin/lld",
+        "llvm/bin/ld64.lld": "llvm/bin/lld",
+        "llvm/bin/lld-link": "llvm/bin/lld",
+        "llvm/bin/llvm-readelf": "llvm/bin/llvm-readobj"
+      },
+      "source_artifact": {
+        "url": "https://github.com/anza-xyz/platform-tools/releases/download/v1.52/platform-tools-linux-x86_64.tar.bz2",
+        "sha256": "8b3861e93daf085ec12b65c4fac374d9bec4587a3de16871da6b08ab0c1d907e",
+        "size": 519270959,
+        "transform": "scripts/sanitize-upstream-archive.py",
+        "omitted_symlinks": [
+          "llvm/bin/clang", "llvm/bin/clang++", "llvm/bin/clang-cl", "llvm/bin/clang-cpp",
+          "llvm/bin/ld.lld", "llvm/bin/ld64.lld", "llvm/bin/lld-link", "llvm/bin/llvm-readelf",
+          "llvm/lib/liblldb.so", "llvm/lib/liblldb.so.20.1-rust-dev",
+          "llvm/lib/python3.10/dist-packages/lldb/_lldb.cpython-310-x86_64-linux-gnu.so",
+          "llvm/lib/python3.10/dist-packages/lldb/lldb-argdumper"
+        ]
+      },
       "bins": {
         "cargo": "rust/bin/cargo",
         "rustc": "rust/bin/rustc"

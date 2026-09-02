@@ -2,10 +2,10 @@
   "schemaVersion": 1,
   "id": "limechain.web3",
   "name": "Web3 Workstation",
-  "version": "0.1.0",
+  "version": "0.3.0",
   "author": "LimeChain",
   "license": "MIT",
-  "description": "Reproducible, non-custodial EVM and Solana workstation with read-only telemetry and guarded local Anvil and Surfpool controls.",
+  "description": "Reproducible, non-custodial EVM, Solana, and lightweight Hedera workstation with guarded local tools and read-only telemetry.",
   "kinds": [
     "bar-widget"
   ],
@@ -14,7 +14,7 @@
   },
   "barWidget": {
     "displayName": "Web3 Workstation",
-    "description": "Read-only EVM and Solana telemetry with guarded local Anvil and Surfpool controls.",
+    "description": "Read-only EVM, Solana, and Hedera telemetry with guarded local Anvil and Surfpool controls.",
     "category": "Development",
     "allowMultiple": false,
     "defaultSection": "right",

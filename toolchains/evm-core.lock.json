@@ -1,5 +1,5 @@
 {
-  "schema": 1,
+  "schema": 2,
   "profile": "evm-core",
   "platform": "linux-x86_64",
   "generated_at": "2026-08-31T00:00:00Z",
@@ -9,8 +9,16 @@
       "version": "1.8.1",
       "url": "https://github.com/foundry-rs/foundry/releases/download/v1.8.1/foundry_v1.8.1_linux_amd64.tar.gz",
       "sha256": "37b45855232e57624d90113b049ca54f0c92055bb5c1997fcbdc3076c7b89c10",
+      "size": 119250997,
+      "redirect_hosts": ["github.com", "release-assets.githubusercontent.com"],
       "archive": "tar.gz",
       "strip_components": 0,
+      "extraction": {
+        "max_entries": 5,
+        "max_unpacked_bytes": 302598248,
+        "max_file_bytes": 104419976,
+        "allowed_top_level": ["anvil", "cast", "chisel", "forge", "solar"]
+      },
       "bins": {
         "forge": "forge",
         "cast": "cast",
@@ -21,15 +29,30 @@
     {
       "id": "node",
       "version": "24.20.0",
-      "url": "https://nodejs.org/dist/v24.20.0/node-v24.20.0-linux-x64.tar.xz",
-      "sha256": "2f2c0da162318f0de47665410c7c8c2ed3d36c8f3105de4bbc61176c70a7cbf2",
-      "archive": "tar.xz",
-      "strip_components": 1,
+      "url": "https://github.com/LimeChain/omarchy-web3/releases/download/toolchains-v1/node-v24.20.0-linux-x64-link-free.zip",
+      "sha256": "82c635ea337e04509c265f8bf435043e47150127a1ada50efad3e67e4ffa9c49",
+      "size": 61186826,
+      "redirect_hosts": ["github.com", "release-assets.githubusercontent.com"],
+      "archive": "zip",
+      "strip_components": 0,
+      "extraction": {
+        "max_entries": 4797,
+        "max_unpacked_bytes": 201155641,
+        "max_file_bytes": 126458664,
+        "allowed_top_level": ["CHANGELOG.md", "LICENSE", "README.md", "bin", "include", "lib", "share"]
+      },
+      "source_artifact": {
+        "url": "https://nodejs.org/dist/v24.20.0/node-v24.20.0-linux-x64.tar.xz",
+        "sha256": "2f2c0da162318f0de47665410c7c8c2ed3d36c8f3105de4bbc61176c70a7cbf2",
+        "size": 31838904,
+        "transform": "scripts/sanitize-upstream-archive.py",
+        "omitted_symlinks": ["bin/corepack", "bin/npm", "bin/npx"]
+      },
       "bins": {
         "node": "bin/node",
-        "npm": "bin/npm",
-        "npx": "bin/npx",
-        "corepack": "bin/corepack"
+        "npm": "lib/node_modules/npm/bin/npm-cli.js",
+        "npx": "lib/node_modules/npm/bin/npx-cli.js",
+        "corepack": "lib/node_modules/corepack/dist/corepack.js"
       }
     },
     {
@@ -37,8 +60,16 @@
       "version": "1.4.0",
       "url": "https://github.com/oven-sh/bun/releases/download/bun-v1.4.0/bun-linux-x64.zip",
       "sha256": "2d03fb5fb83ac8b567aca0a281b2ce1a1a19d488f56c2968d88c3f25e92fe452",
+      "size": 36697619,
+      "redirect_hosts": ["github.com", "release-assets.githubusercontent.com"],
       "archive": "zip",
       "strip_components": 1,
+      "extraction": {
+        "max_entries": 1,
+        "max_unpacked_bytes": 80761952,
+        "max_file_bytes": 80761952,
+        "allowed_top_level": ["bun"]
+      },
       "bins": {
         "bun": "bun",
         "bunx": "bun"
@@ -49,8 +80,16 @@
       "version": "2.3.3",
       "url": "https://github.com/crytic/echidna/releases/download/v2.3.3/echidna-2.3.3-x86_64-linux.tar.gz",
       "sha256": "436d26cb5af34c6c525812b857ac53f218c7f6ad07d69495ef88bc4cdc85c764",
+      "size": 9653507,
+      "redirect_hosts": ["github.com", "release-assets.githubusercontent.com"],
       "archive": "tar.gz",
       "strip_components": 0,
+      "extraction": {
+        "max_entries": 1,
+        "max_unpacked_bytes": 32940296,
+        "max_file_bytes": 32940296,
+        "allowed_top_level": ["echidna"]
+      },
       "bins": {
         "echidna": "echidna"
       }
@@ -60,8 +99,16 @@
       "version": "0.12.7",
       "url": "https://github.com/astral-sh/uv/releases/download/0.12.7/uv-x86_64-unknown-linux-gnu.tar.gz",
       "sha256": "788f18abea7c5f55d6216e4f5613fd89d4d59b631efeec117b2b07fe72f1da21",
+      "size": 19419908,
+      "redirect_hosts": ["github.com", "release-assets.githubusercontent.com"],
       "archive": "tar.gz",
       "strip_components": 1,
+      "extraction": {
+        "max_entries": 2,
+        "max_unpacked_bytes": 49829528,
+        "max_file_bytes": 49482464,
+        "allowed_top_level": ["uv", "uvx"]
+      },
       "bins": {
         "uv": "uv",
         "uvx": "uvx"
@@ -72,6 +119,8 @@
       "version": "0.8.36",
       "url": "https://github.com/argotorg/solidity/releases/download/v0.8.36/solc-static-linux",
       "sha256": "c8d35afdddc3cd2743ee88b8f25e0fecd16e2bdd5f2120f37e52cd9cc45ae0e6",
+      "size": 16279888,
+      "redirect_hosts": ["github.com", "release-assets.githubusercontent.com"],
       "archive": "raw",
       "strip_components": 0,
       "bins": {

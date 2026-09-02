@@ -9,6 +9,18 @@ Run this matrix on a clean x86-64 VM installed from the latest stable Omarchy Qu
 3. Confirm the second run changes no user-authored menu or shell configuration.
 4. Run `limechain-web3 doctor --json`; every check must pass.
 5. Confirm the bar widget loads and its panel opens.
+6. Confirm no path exists at `~/.agents/skills/limechain-web3` unless the separate opt-in command was run.
+
+## Marketplace security boundaries
+
+1. Run the malicious archive/download unit suite and retain its output with the validation record.
+2. Reproduce both derived link-free archives on Ubuntu 24.04; compare sizes and SHA-256 values with the locks and verify their GitHub attestations.
+3. Create unmarked collisions at each application/config/state/cache/CLI/service destination in an isolated home and confirm install/uninstall refuses them without mutation.
+4. Replace a parent component with a symlink and confirm the lifecycle refuses it.
+5. Inject the post-app-commit test failure and confirm the old app, state, CLI link, menu bytes, unit bytes, and prior active/inactive service states are restored.
+6. Modify and add a file to the optional agent skill. Confirm update/removal refuses it, then restore the exact manifest and confirm removal succeeds.
+7. Make the official plugin update mutate the checkout and `shell.json`, then fail; confirm the old checkout and byte-identical shell configuration return.
+8. Make the official plugin removal delete the native checkout and mutate `shell.json`, then fail during rescan; confirm the checkout, shell configuration, workstation files, menu, and prior service states all return.
 
 ## Toolchain smoke test
 
@@ -73,11 +85,28 @@ limechain-web3 exec solana transfer recipient 1
 limechain-web3 exec anchor test
 ```
 
+## Lightweight Hedera observer
+
+```bash
+./install --profile hedera-core
+limechain-web3 hedera status
+limechain-web3 hedera latest-block
+limechain-web3 hedera nodes --json
+limechain-web3 hedera account 0.0.3 --json
+limechain-web3 hedera network previewnet
+limechain-web3 hedera network testnet
+```
+
+Confirm installation downloads no Hedera artifact and creates no service. Capture the panel on a small machine and verify Testnet is the default, switching shows a pending state, block and consensus-node data refresh, and the latest-block action opens the matching HashScan network. Confirm malformed account and transaction identifiers are refused before a request, redirects fail closed, output omits account key material and transfer lists, and no request uses POST.
+
+Do not install or start Solo as part of this profile. A future optional Solo lab requires a separate acceptance matrix for resource limits, cleanup, isolation, and all signing material it creates.
+
 ## Update and uninstall
 
 1. Update from the previous tagged release and confirm config, menu placement, and projects remain unchanged.
 2. Run normal uninstall and confirm project-owned files and service state are removed while configuration/cache remain.
 3. Reinstall, run purge uninstall, and confirm configuration/cache are removed.
 4. Confirm unrelated Omarchy plugins, menu entries, agent skills, and shell layout remain unchanged after both paths.
+5. Run the separate agent-skill opt-in/update/removal lifecycle before plugin removal; confirm base install/uninstall never creates or removes that tree.
 
 Do not run destructive lifecycle tests on a user's daily machine; use a clean VM snapshot.

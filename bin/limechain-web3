@@ -14,6 +14,7 @@ import socket
 import stat
 import subprocess
 import sys
+import tempfile
 import time
 import tomllib
 import urllib.error
@@ -27,6 +28,22 @@ APP_ID = "limechain.web3"
 MENU_BEGIN = "// BEGIN limechain.web3 (managed by limechain-web3)"
 MENU_END = "// END limechain.web3"
 SENSITIVE_KEY = re.compile(r"(private.?key|mnemonic|seed|keystore|password|secret)", re.I)
+HEDERA_NETWORKS = {
+    "mainnet": {
+        "mirror_url": "https://mainnet-public.mirrornode.hedera.com/api/v1",
+        "explorer_url": "https://hashscan.io/mainnet",
+    },
+    "testnet": {
+        "mirror_url": "https://testnet.mirrornode.hedera.com/api/v1",
+        "explorer_url": "https://hashscan.io/testnet",
+    },
+    "previewnet": {
+        "mirror_url": "https://previewnet.mirrornode.hedera.com/api/v1",
+        "explorer_url": "https://hashscan.io/previewnet",
+    },
+}
+HEDERA_ACCOUNT = re.compile(r"(?:0\.0\.[0-9]{1,19}|0x[0-9a-fA-F]{40})")
+HEDERA_TRANSACTION = re.compile(r"0\.0\.[0-9]{1,19}(?:-|@)[0-9]{10}\.[0-9]{1,9}")
 
 
 def _home() -> Path:
@@ -79,9 +96,15 @@ def installed_profiles() -> list[str]:
         return ["evm-core"]
     profiles = state.get("profiles")
     if isinstance(profiles, list):
-        return sorted({str(profile) for profile in profiles if profile in {"evm-core", "solana-core"}})
+        return sorted(
+            {
+                str(profile)
+                for profile in profiles
+                if profile in {"evm-core", "solana-core", "hedera-core"}
+            }
+        )
     profile = str(state.get("profile", "evm-core"))
-    return [profile] if profile in {"evm-core", "solana-core"} else ["evm-core"]
+    return [profile] if profile in {"evm-core", "solana-core", "hedera-core"} else ["evm-core"]
 
 
 def lock_paths() -> list[Path]:
@@ -166,17 +189,31 @@ def read_json(path: Path) -> dict[str, Any]:
     return value
 
 
+def atomic_write(path: Path, content: str, mode: int) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    if path.is_symlink():
+        raise RuntimeError(f"refusing to replace a symlink: {path}")
+    descriptor, temporary = tempfile.mkstemp(prefix=f".{path.name}.", dir=path.parent)
+    temp_path = Path(temporary)
+    try:
+        with os.fdopen(descriptor, "w", encoding="utf-8") as handle:
+            handle.write(content)
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.chmod(temp_path, mode)
+        temp_path.replace(path)
+    except BaseException:
+        temp_path.unlink(missing_ok=True)
+        raise
+
+
 def load_config() -> dict[str, Any]:
     return read_json(config_path())
 
 
 def write_config(config: dict[str, Any]) -> None:
     path = config_path()
-    path.parent.mkdir(parents=True, exist_ok=True)
-    temp = path.with_suffix(".tmp")
-    temp.write_text(json.dumps(config, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-    os.chmod(temp, 0o600)
-    temp.replace(path)
+    atomic_write(path, json.dumps(config, indent=2, sort_keys=True) + "\n", 0o600)
 
 
 def validate_public_rpc_url(value: str, *, allow_local: bool = False, resolve: bool = False) -> str:
@@ -305,6 +342,97 @@ def solana_rpc_snapshot(url: str, timeout: float) -> dict[str, Any]:
     }
 
 
+def hedera_network_config(network: str) -> dict[str, str]:
+    if network not in HEDERA_NETWORKS:
+        raise RuntimeError("Hedera network must be mainnet, testnet, or previewnet")
+    selected = dict(HEDERA_NETWORKS[network])
+    test_base = os.environ.get("LCW3_HEDERA_TEST_BASE_URL", "")
+    if test_base and os.environ.get("LCW3_TESTING") == "1":
+        selected["mirror_url"] = validate_public_rpc_url(test_base, allow_local=True).rstrip("/")
+    return selected
+
+
+def hedera_current_network(config: dict[str, Any] | None = None) -> str:
+    current = config if config is not None else load_config()
+    hedera = current.get("hedera", {})
+    if not isinstance(hedera, dict):
+        raise RuntimeError("Hedera configuration must be a JSON object")
+    network = str(hedera.get("network", "testnet")).lower()
+    hedera_network_config(network)
+    return network
+
+
+def rest_get_json(base: str, path: str, timeout: float, query: dict[str, str] | None = None) -> dict[str, Any]:
+    if not path.startswith("/") or ".." in path:
+        raise RuntimeError("unsafe Mirror Node API path")
+    url = base.rstrip("/") + path
+    if query:
+        url += "?" + urllib.parse.urlencode(query)
+    request = urllib.request.Request(
+        url,
+        method="GET",
+        headers={"Accept": "application/json", "User-Agent": "limechain-web3/0.1"},
+    )
+    try:
+        opener = urllib.request.build_opener(_NoRedirectHandler())
+        with opener.open(request, timeout=timeout) as response:
+            if response.length is not None and response.length > 1_048_576:
+                raise RuntimeError("Mirror Node response exceeded the 1 MiB limit")
+            body = response.read(1_048_577)
+    except (urllib.error.URLError, TimeoutError, OSError) as exc:
+        raise RuntimeError(f"Mirror Node unavailable: {exc.__class__.__name__}") from exc
+    if len(body) > 1_048_576:
+        raise RuntimeError("Mirror Node response exceeded the 1 MiB limit")
+    try:
+        decoded = json.loads(body)
+    except json.JSONDecodeError as exc:
+        raise RuntimeError("Mirror Node returned invalid JSON") from exc
+    if not isinstance(decoded, dict):
+        raise RuntimeError("Mirror Node returned an unexpected response")
+    return decoded
+
+
+def hedera_snapshot(network: str, timeout: float) -> dict[str, Any]:
+    selected = hedera_network_config(network)
+    started = time.monotonic()
+    blocks = rest_get_json(
+        selected["mirror_url"],
+        "/blocks",
+        timeout,
+        {"limit": "1", "order": "desc"},
+    )
+    nodes = rest_get_json(
+        selected["mirror_url"],
+        "/network/nodes",
+        timeout,
+        {"limit": "100", "order": "asc"},
+    )
+    block_items = blocks.get("blocks")
+    node_items = nodes.get("nodes")
+    if not isinstance(block_items, list) or not block_items or not isinstance(block_items[0], dict):
+        raise RuntimeError("Mirror Node returned no latest block")
+    if not isinstance(node_items, list):
+        raise RuntimeError("Mirror Node returned an unexpected node list")
+    latest = block_items[0]
+    block_height = latest.get("number")
+    timestamp = latest.get("timestamp", {})
+    if not isinstance(block_height, int) or not isinstance(timestamp, dict):
+        raise RuntimeError("Mirror Node returned an unexpected block shape")
+    return {
+        "ok": True,
+        "mode": "read-only",
+        "network": network,
+        "mirror_url": selected["mirror_url"],
+        "explorer_url": selected["explorer_url"],
+        "block_height": block_height,
+        "consensus_timestamp": str(timestamp.get("to") or timestamp.get("from") or ""),
+        "hapi_version": str(latest.get("hapi_version") or ""),
+        "node_count": len(node_items),
+        "node_count_truncated": bool(nodes.get("links", {}).get("next")) if isinstance(nodes.get("links"), dict) else False,
+        "latency_ms": round((time.monotonic() - started) * 1000),
+    }
+
+
 def inactive_snapshot(reason: str) -> dict[str, Any]:
     return {
         "ok": False,
@@ -323,6 +451,24 @@ def inactive_solana_snapshot(reason: str) -> dict[str, Any]:
         "slot": None,
         "version": None,
         "genesis_hash": None,
+        "latency_ms": None,
+        "error": reason,
+    }
+
+
+def inactive_hedera_snapshot(reason: str, network: str = "testnet") -> dict[str, Any]:
+    selected = hedera_network_config(network)
+    return {
+        "ok": False,
+        "mode": "read-only",
+        "network": network,
+        "mirror_url": selected["mirror_url"],
+        "explorer_url": selected["explorer_url"],
+        "block_height": None,
+        "consensus_timestamp": None,
+        "hapi_version": None,
+        "node_count": None,
+        "node_count_truncated": False,
         "latency_ms": None,
         "error": reason,
     }
@@ -394,8 +540,25 @@ def command_status(args: argparse.Namespace) -> int:
     else:
         solana_report = inactive_solana_snapshot("solana-core profile not installed")
 
+    hedera_installed = "hedera-core" in profiles
+    hedera_config_error = ""
+    try:
+        hedera_network = hedera_current_network(config)
+    except RuntimeError as exc:
+        hedera_network = "testnet"
+        hedera_config_error = str(exc)
+    if hedera_installed and hedera_config_error:
+        hedera_report = inactive_hedera_snapshot(hedera_config_error, hedera_network)
+    elif hedera_installed:
+        try:
+            hedera_report = hedera_snapshot(hedera_network, timeout)
+        except RuntimeError as exc:
+            hedera_report = inactive_hedera_snapshot(str(exc), hedera_network)
+    else:
+        hedera_report = inactive_hedera_snapshot("hedera-core profile not installed", hedera_network)
+
     report = {
-        "schema": 2,
+        "schema": 3,
         "chain": {
             "configured": bool(remote_url),
             "name": str(chain.get("name", "Unconfigured")),
@@ -419,6 +582,11 @@ def command_status(args: argparse.Namespace) -> int:
             "anchor_version": locked_artifact_version("anchor") or None,
             **solana_report,
         },
+        "hedera": {
+            "installed": hedera_installed,
+            "mode": "read-only",
+            **hedera_report,
+        },
     }
     if args.json:
         print(json_dump(report))
@@ -426,10 +594,22 @@ def command_status(args: argparse.Namespace) -> int:
         chain_report = report["chain"]
         local_status = "healthy" if report["local"]["ok"] else "offline"
         solana_status = "healthy" if report["solana"]["ok"] else "offline"
-        local_summary = f"Anvil {local_status}"
+        local_summary = f"Anvil {local_status}" if evm_installed else ""
         if report["solana"]["installed"]:
-            local_summary += f", Surfpool {solana_status}"
-        if chain_report["ok"]:
+            local_summary += (", " if local_summary else "") + f"Surfpool {solana_status}"
+        if report["hedera"]["installed"]:
+            hedera_status = "healthy" if report["hedera"]["ok"] else "offline"
+            local_summary += (", " if local_summary else "") + f"Hedera {hedera_network} {hedera_status}"
+        local_summary = local_summary or "no network profile installed"
+        if hedera_installed and not evm_installed and not solana_installed and not chain_report["configured"]:
+            if report["hedera"]["ok"]:
+                print(
+                    f"Hedera {hedera_network}: block {report['hedera']['block_height']:,}, "
+                    f"{report['hedera']['node_count']} consensus nodes"
+                )
+            else:
+                print(f"Hedera {hedera_network}: {report['hedera']['error']}")
+        elif chain_report["ok"]:
             print(
                 f"{chain_report['name']}: block {chain_report['block_height']:,}, "
                 f"gas {chain_report['gas_gwei']} gwei; {local_summary}"
@@ -585,7 +765,34 @@ def command_doctor(args: argparse.Namespace) -> int:
     if "solana-core" in profiles:
         add("surfpool-unit", surfpool_systemd_unit_path().is_file(), str(surfpool_systemd_unit_path()))
     add("shell-plugin", (config_home() / "omarchy" / "plugins" / APP_ID / "manifest.json").is_file(), APP_ID)
-    add("agent-skill", (_home() / ".agents" / "skills" / "limechain-web3" / "SKILL.md").is_file(), "limechain-web3")
+
+    skill_root = _home() / ".agents" / "skills" / "limechain-web3"
+    if not os.path.lexists(skill_root):
+        add("agent-skill", True, "not installed (optional)")
+    else:
+        managed_tree = app_root() / "scripts" / "managed-tree.py"
+        try:
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(managed_tree),
+                    "verify",
+                    "--target",
+                    str(skill_root),
+                    "--boundary",
+                    str(_home()),
+                    "--scope",
+                    "agent-skill",
+                ],
+                capture_output=True,
+                text=True,
+                timeout=5,
+            )
+        except (OSError, subprocess.TimeoutExpired) as exc:
+            add("agent-skill", False, f"verification failed: {exc}")
+        else:
+            detail = "installed and verified" if result.returncode == 0 else (result.stderr.strip() or "verification failed")
+            add("agent-skill", result.returncode == 0, detail)
 
     ok = all(item["ok"] for item in checks)
     report = {"ok": ok, "checks": checks}
@@ -612,6 +819,135 @@ def command_configure(args: argparse.Namespace) -> int:
     write_config(config)
     print(f"Updated {config_path()}")
     return 0
+
+
+def require_hedera_profile() -> None:
+    if "hedera-core" not in installed_profiles():
+        raise RuntimeError("hedera-core profile is not installed")
+
+
+def hedera_query(
+    path: str,
+    *,
+    timeout: float | None = None,
+    query: dict[str, str] | None = None,
+) -> dict[str, Any]:
+    config = load_config()
+    network = hedera_current_network(config)
+    selected = hedera_network_config(network)
+    configured_timeout = float(config.get("telemetry", {}).get("timeout_seconds", 3))
+    return rest_get_json(
+        selected["mirror_url"],
+        path,
+        min(10.0, max(0.5, timeout if timeout is not None else configured_timeout)),
+        query,
+    )
+
+
+def command_hedera(args: argparse.Namespace) -> int:
+    require_hedera_profile()
+    config = load_config()
+    network = hedera_current_network(config)
+    timeout = min(10.0, max(0.5, float(config.get("telemetry", {}).get("timeout_seconds", 3))))
+
+    if args.hedera_action == "network":
+        if args.name is None:
+            print(network)
+            return 0
+        hedera_network_config(args.name)
+        hedera = config.setdefault("hedera", {})
+        if not isinstance(hedera, dict):
+            raise RuntimeError("Hedera configuration must be a JSON object")
+        hedera["network"] = args.name
+        if secret_paths(config):
+            raise RuntimeError("configuration contains a sensitive-looking field and was not written")
+        write_config(config)
+        print(f"Hedera observer now uses {args.name}")
+        return 0
+
+    if args.hedera_action in {"status", "latest-block", "open-latest"}:
+        report = hedera_snapshot(network, timeout)
+        if args.hedera_action == "status":
+            if args.json:
+                print(json_dump(report))
+            else:
+                print(
+                    f"Hedera {network}: block {report['block_height']:,}, "
+                    f"{report['node_count']}{'+' if report['node_count_truncated'] else ''} consensus nodes, "
+                    f"{report['latency_ms']} ms"
+                )
+            return 0
+        if args.hedera_action == "latest-block":
+            print(report["block_height"])
+            return 0
+        target = f"{report['explorer_url']}/block/{report['block_height']}"
+        subprocess.run(["xdg-open", target], check=True, timeout=10)
+        return 0
+
+    if args.hedera_action == "nodes":
+        response = hedera_query("/network/nodes", query={"limit": "100", "order": "asc"})
+        raw_nodes = response.get("nodes")
+        if not isinstance(raw_nodes, list):
+            raise RuntimeError("Mirror Node returned an unexpected node list")
+        nodes = [
+            {
+                "node_id": item.get("node_id"),
+                "account_id": item.get("node_account_id"),
+                "description": item.get("description"),
+                "service_endpoints": item.get("service_endpoints", []),
+            }
+            for item in raw_nodes
+            if isinstance(item, dict)
+        ]
+        if args.json:
+            print(json_dump({"network": network, "nodes": nodes}))
+        else:
+            for item in nodes:
+                print(f"{item['node_id']}\t{item['account_id']}\t{item['description'] or ''}")
+        return 0
+
+    if args.hedera_action == "account":
+        if not HEDERA_ACCOUNT.fullmatch(args.identifier):
+            raise RuntimeError("Hedera account must be 0.0.N or a 20-byte EVM address")
+        response = hedera_query("/accounts/" + urllib.parse.quote(args.identifier, safe="."))
+        balance = response.get("balance", {})
+        result = {
+            "network": network,
+            "account": response.get("account"),
+            "balance_tinybar": balance.get("balance") if isinstance(balance, dict) else None,
+            "deleted": response.get("deleted"),
+            "ethereum_nonce": response.get("ethereum_nonce"),
+            "memo": response.get("memo"),
+        }
+        print(json_dump(result) if args.json else "\n".join(f"{key}: {value}" for key, value in result.items()))
+        return 0
+
+    if args.hedera_action == "transaction":
+        if not HEDERA_TRANSACTION.fullmatch(args.identifier):
+            raise RuntimeError("Hedera transaction ID must use 0.0.N@seconds.nanoseconds")
+        response = hedera_query("/transactions/" + urllib.parse.quote(args.identifier, safe=".@-"))
+        transactions = response.get("transactions")
+        if not isinstance(transactions, list):
+            raise RuntimeError("Mirror Node returned an unexpected transaction response")
+        result = {
+            "network": network,
+            "transactions": [
+                {
+                    "transaction_id": item.get("transaction_id"),
+                    "consensus_timestamp": item.get("consensus_timestamp"),
+                    "result": item.get("result"),
+                    "name": item.get("name"),
+                    "charged_tx_fee": item.get("charged_tx_fee"),
+                    "node": item.get("node"),
+                }
+                for item in transactions
+                if isinstance(item, dict)
+            ],
+        }
+        print(json_dump(result) if args.json else "\n".join(json_dump(item) for item in result["transactions"]))
+        return 0
+
+    raise RuntimeError("unsupported Hedera action")
 
 
 def command_anvil(args: argparse.Namespace) -> int:
@@ -1035,15 +1371,20 @@ def install_menu_extension() -> None:
                 '"web3.surfpool-stop": {"icon":"󰓛","label":"Stop Offline Surfpool","action":"omarchy-launch-floating-terminal-with-presentation \'limechain-web3 surfpool stop\'"}',
             ]
         )
+    if "hedera-core" in profiles:
+        entries.extend(
+            [
+                '"web3.hedera-status": {"icon":"󰄬","label":"Hedera Observer Status","action":"omarchy-launch-floating-terminal-with-presentation \'limechain-web3 hedera status; read -r\'"}',
+                '"web3.hedera-explorer": {"icon":"󰖟","label":"Open Latest Hedera Block","action":"limechain-web3 hedera open-latest"}',
+            ]
+        )
     entries.append(
         '"web3.doctor": {"icon":"󰒓","label":"Run Workstation Doctor","action":"omarchy-launch-floating-terminal-with-presentation \'limechain-web3 doctor; read -r\'"}'
     )
     rendered_entries = ",\n".join(f"  {entry}" for entry in entries)
     block = f"  {MENU_BEGIN}\n{rendered_entries}\n  {MENU_END}\n"
     updated = before.rstrip() + "\n" + block + text[close_index:]
-    temp = path.with_suffix(".tmp")
-    temp.write_text(updated, encoding="utf-8")
-    temp.replace(path)
+    atomic_write(path, updated, 0o600)
 
 
 def remove_menu_extension() -> None:
@@ -1057,9 +1398,7 @@ def remove_menu_extension() -> None:
     )
     updated, count = pattern.subn("\n", text, count=1)
     if count:
-        temp = path.with_suffix(".tmp")
-        temp.write_text(updated, encoding="utf-8")
-        temp.replace(path)
+        atomic_write(path, updated, 0o600)
 
 
 def command_internal(args: argparse.Namespace) -> int:
@@ -1076,7 +1415,8 @@ def command_lifecycle(args: argparse.Namespace) -> int:
     script = app_root() / "scripts" / ("update.sh" if args.action == "update" else "uninstall.sh")
     if not script.is_file():
         raise RuntimeError(f"lifecycle script is missing: {script}")
-    return subprocess.run([str(script), *args.extra]).returncode
+    extra = ["--purge"] if args.action == "uninstall" and args.purge else []
+    return subprocess.run([str(script), *extra]).returncode
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -1128,6 +1468,30 @@ def build_parser() -> argparse.ArgumentParser:
     )
     solana.set_defaults(func=command_solana)
 
+    hedera = sub.add_parser("hedera", help="use the fixed read-only Hedera Mirror Node observer")
+    hedera_sub = hedera.add_subparsers(dest="hedera_action", required=True)
+    hedera_status = hedera_sub.add_parser("status", help="show Mirror Node and consensus status")
+    hedera_status.add_argument("--json", action="store_true")
+    hedera_status.set_defaults(func=command_hedera)
+    hedera_network = hedera_sub.add_parser("network", help="show or select an official Hedera network")
+    hedera_network.add_argument("name", nargs="?", choices=tuple(HEDERA_NETWORKS))
+    hedera_network.set_defaults(func=command_hedera)
+    hedera_latest = hedera_sub.add_parser("latest-block", help="print the latest block number")
+    hedera_latest.set_defaults(func=command_hedera)
+    hedera_nodes = hedera_sub.add_parser("nodes", help="list consensus nodes")
+    hedera_nodes.add_argument("--json", action="store_true")
+    hedera_nodes.set_defaults(func=command_hedera)
+    hedera_account = hedera_sub.add_parser("account", help="inspect an account without signing")
+    hedera_account.add_argument("identifier")
+    hedera_account.add_argument("--json", action="store_true")
+    hedera_account.set_defaults(func=command_hedera)
+    hedera_transaction = hedera_sub.add_parser("transaction", help="inspect a transaction by ID")
+    hedera_transaction.add_argument("identifier")
+    hedera_transaction.add_argument("--json", action="store_true")
+    hedera_transaction.set_defaults(func=command_hedera)
+    hedera_open = hedera_sub.add_parser("open-latest", help="open the latest block in HashScan")
+    hedera_open.set_defaults(func=command_hedera)
+
     anchor = sub.add_parser("anchor", help="use the guarded, keypair-free Anchor workflow")
     anchor_sub = anchor.add_subparsers(dest="anchor_action", required=True)
     anchor_version = anchor_sub.add_parser("version", help="show the pinned Anchor CLI version")
@@ -1176,10 +1540,11 @@ def build_parser() -> argparse.ArgumentParser:
     explorer.add_argument("value", nargs="?")
     explorer.set_defaults(func=command_open_explorer)
 
-    for action in ("update", "uninstall"):
-        lifecycle = sub.add_parser(action, help=f"{action} the workstation")
-        lifecycle.add_argument("extra", nargs=argparse.REMAINDER)
-        lifecycle.set_defaults(func=command_lifecycle, action=action)
+    update = sub.add_parser("update", help="update the workstation")
+    update.set_defaults(func=command_lifecycle, action="update", purge=False)
+    uninstall = sub.add_parser("uninstall", help="uninstall the workstation")
+    uninstall.add_argument("--purge", action="store_true", help="also remove owned configuration and cache")
+    uninstall.set_defaults(func=command_lifecycle, action="uninstall")
 
     internal = sub.add_parser("internal", help=argparse.SUPPRESS)
     internal.add_argument("action", choices=("install-menu", "remove-menu"))

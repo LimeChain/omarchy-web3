@@ -18,6 +18,12 @@
 | Create safe Anchor sample | `limechain-web3 anchor scaffold ./anchor-counter` |
 | Compile Anchor sample | `limechain-web3 anchor build ./anchor-counter` |
 | Rebuild from cache | `limechain-web3 anchor build ./anchor-counter --offline` |
+| Read Hedera status | `limechain-web3 hedera status` |
+| Read latest Hedera block | `limechain-web3 hedera latest-block` |
+| List Hedera consensus nodes | `limechain-web3 hedera nodes --json` |
+| Inspect a Hedera account | `limechain-web3 hedera account 0.0.3 --json` |
+| Inspect a Hedera transaction | `limechain-web3 hedera transaction '0.0.3@1750000000.000000001' --json` |
+| Select official Hedera network | `limechain-web3 hedera network testnet` |
 
 ## Verified tools
 
@@ -33,6 +39,7 @@ The guard refuses:
 - Arbitrary Surfpool commands, remote datasources, MCP, keypair, payer, and airdrop-keypair flags. Use the fixed `surfpool` subcommand instead.
 - Arbitrary Solana CLI commands, including config, keygen, airdrop, transfer, program, stake, vote, and transaction operations.
 - Anchor init/new/test/localnet/deploy/keys/account/migrate/IDL commands and builds that could load keys, run lifecycle hooks, change toolchains, or generate clients.
+- Arbitrary Hedera endpoints, write requests, account creation/funding, transaction submission, and Solo startup. Hedera commands use fixed public Mirror Node endpoints and curated read-only output.
 
 ## Credential-free chain configuration
 

@@ -48,7 +48,7 @@ def build() -> dict[str, object]:
     version = (ROOT / "VERSION").read_text(encoding="utf-8").strip()
     locks = [
         json.loads((ROOT / "toolchains" / profile).read_text(encoding="utf-8"))
-        for profile in ("evm-core.lock.json", "solana-core.lock.json")
+        for profile in ("evm-core.lock.json", "solana-core.lock.json", "hedera-core.lock.json")
     ]
     namespace_seed = hashlib.sha256(json.dumps(locks, sort_keys=True).encode()).hexdigest()
     packages: list[dict[str, object]] = [

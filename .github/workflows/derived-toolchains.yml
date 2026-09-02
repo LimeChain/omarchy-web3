@@ -1,0 +1,79 @@
+name: Reproduce derived toolchains
+
+on:
+  push:
+    tags:
+      - "toolchains-v*"
+
+permissions:
+  contents: write
+  id-token: write
+  attestations: write
+
+jobs:
+  reproduce:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out the exact tagged transform
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Verify source, locks, and malicious-input regressions
+        run: make test
+
+      - name: Download checksum-locked upstream archives
+        run: |
+          mkdir -p upstream dist
+          curl --proto '=https' --tlsv1.2 --fail --location --max-redirs 3 \
+            --output upstream/node.tar.xz \
+            https://nodejs.org/dist/v24.20.0/node-v24.20.0-linux-x64.tar.xz
+          curl --proto '=https' --tlsv1.2 --fail --location --max-redirs 3 \
+            --output upstream/platform-tools.tar.bz2 \
+            https://github.com/anza-xyz/platform-tools/releases/download/v1.52/platform-tools-linux-x86_64.tar.bz2
+
+      - name: Build deterministic ordinary-file-only ZIPs
+        run: |
+          python3 scripts/sanitize-upstream-archive.py \
+            --source upstream/node.tar.xz \
+            --output dist/node-v24.20.0-linux-x64-link-free.zip \
+            --source-size 31838904 \
+            --source-sha256 2f2c0da162318f0de47665410c7c8c2ed3d36c8f3105de4bbc61176c70a7cbf2 \
+            --strip-components 1 \
+            --drop-symlink bin/corepack \
+            --drop-symlink bin/npm \
+            --drop-symlink bin/npx
+          python3 scripts/sanitize-upstream-archive.py \
+            --source upstream/platform-tools.tar.bz2 \
+            --output dist/platform-tools-v1.52-linux-x86_64-link-free.zip \
+            --source-size 519270959 \
+            --source-sha256 8b3861e93daf085ec12b65c4fac374d9bec4587a3de16871da6b08ab0c1d907e \
+            --drop-symlink llvm/lib/liblldb.so.20.1-rust-dev \
+            --drop-symlink llvm/lib/python3.10/dist-packages/lldb/_lldb.cpython-310-x86_64-linux-gnu.so \
+            --drop-symlink llvm/lib/python3.10/dist-packages/lldb/lldb-argdumper \
+            --drop-symlink llvm/lib/liblldb.so \
+            --drop-symlink llvm/bin/clang++ \
+            --drop-symlink llvm/bin/clang-cpp \
+            --drop-symlink llvm/bin/llvm-readelf \
+            --drop-symlink llvm/bin/ld.lld \
+            --drop-symlink llvm/bin/lld-link \
+            --drop-symlink llvm/bin/clang-cl \
+            --drop-symlink llvm/bin/clang \
+            --drop-symlink llvm/bin/ld64.lld
+
+      - name: Verify reviewed outputs
+        run: |
+          test "$(stat -c %s dist/node-v24.20.0-linux-x64-link-free.zip)" = 61186826
+          test "$(sha256sum dist/node-v24.20.0-linux-x64-link-free.zip | cut -d' ' -f1)" = 82c635ea337e04509c265f8bf435043e47150127a1ada50efad3e67e4ffa9c49
+          test "$(stat -c %s dist/platform-tools-v1.52-linux-x86_64-link-free.zip)" = 574242058
+          test "$(sha256sum dist/platform-tools-v1.52-linux-x86_64-link-free.zip | cut -d' ' -f1)" = 674208d05dbc3471f8221bd2e3920528c28dc61f8ea9e41b88b8ac66ce69b32b
+          cp toolchains/DERIVED_ARTIFACTS.md dist/
+          (cd dist && sha256sum *.zip >SHA256SUMS)
+
+      - name: Attest derived release artifacts
+        uses: actions/attest-build-provenance@977bb373ede98d70efdf65b84cb5f73e068dcc2a # v3
+        with:
+          subject-path: "dist/*"
+
+      - name: Publish immutable derived-toolchain release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" dist/* --verify-tag --title "Link-free reviewed toolchains v1" --notes-file toolchains/DERIVED_ARTIFACTS.md
